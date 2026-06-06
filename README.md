@@ -1,22 +1,27 @@
-# AGFSSkill — 运维巡检技能集
+# AGFSSkill — AI 技能集
 
-跨平台系统运维巡检技能集合，覆盖 **Windows** 和 **Linux** 系统，一键采集 30+ 项系统数据，生成专业巡检报告。
+AI 驱动的运维与测试技能集合，覆盖 **系统巡检** 和 **视频测试** 两大场景。
 
 ## 📦 技能列表
 
 | 技能 | 路径 | 说明 |
 |---|---|---|
-| **one-click-inspection** | `skills/one-click-inspection/` | 一键运维巡检，支持 HTML / JSON / Markdown 输出 |
+| **one-click-inspection** | `skills/one-click-inspection/` | 一键运维巡检（Win/Linux），30+ 项系统数据，HTML/JSON/MD 输出 |
+| **video-test-gen** | `skills/video-test-gen/` | 操作视频自动生成测试用例，输出 Excel/Word/测试记录 |
 
 ## 🚀 快速开始
 
 ```bash
-# Windows 巡检
+# 一键运维巡检 —— Windows
 python skills/one-click-inspection/scripts/win_inspection_html.py -f html
 
-# Linux 巡检
+# 一键运维巡检 —— Linux
 chmod +x skills/one-click-inspection/scripts/linux_inspect.sh
 sudo ./skills/one-click-inspection/scripts/linux_inspect.sh --fast
+
+# 视频测试用例生成
+pip install opencv-python scikit-image pandas xlsxwriter python-docx openai
+python skills/video-test-gen/scripts/pipeline.py <video_path> <output_dir> --api-key sk-xxx
 ```
 
 ## 📋 技能详情
@@ -25,7 +30,7 @@ sudo ./skills/one-click-inspection/scripts/linux_inspect.sh --fast
 
 跨平台一键运维巡检工具，采集 30+ 项系统数据，生成蓝白侧边栏风格的专业 HTML 巡检报告。
 
-**采集能力（Windows）：**
+**采集能力（Windows，13 大模块）：**
 
 | # | 模块 | 采集项 |
 |---|---|---|
@@ -46,9 +51,7 @@ sudo ./skills/one-click-inspection/scripts/linux_inspect.sh --fast
 **采集能力（Linux，18+ 大类）：**
 主机信息、CPU 与负载、内存与 Swap、磁盘存储、大文件扫描、文件描述符、网络配置、进程分析、服务状态、Docker/Podman 容器、定时任务、安全检查、内核参数、系统更新、SSL 证书、系统日志、总体建议
 
-### 输出格式
-
-所有脚本支持统一的命令行接口：
+**统一命令行接口：**
 
 | 选项 | 说明 |
 |---|---|
@@ -57,25 +60,68 @@ sudo ./skills/one-click-inspection/scripts/linux_inspect.sh --fast
 | `-v` | 详细日志 |
 | `-h` | 显示帮助信息 |
 
+---
+
+### video-test-gen
+
+从操作录屏视频自动转化为结构化测试用例，输出格式化 Excel、图文 Word 和模板格式测试记录。
+
+**流程：**
+
+```
+视频 → 关键帧提取 → [二次筛选] → AI分析 → 用例合并 → 步骤补全 → Excel + Word + 测试记录
+```
+
+**模块脚本：**
+
+| 脚本 | 功能 |
+|---|---|
+| `extract_keyframes.py` | 从视频中提取关键帧（基于直方图差异 + 场景检测） |
+| `analyze_frames.py` | 多模态 AI 分析关键帧，生成结构化测试步骤 |
+| `merge_test_cases.py` | 合并相邻场景用例，智能补全前置条件/预期结果 |
+| `generate_reports.py` | 输出格式化 Excel + 图文 Word 报告 |
+| `generate_test_records.py` | 按模板生成标准化测试记录文档 |
+| `pipeline.py` | 全流程一键执行，支持断点续跑 |
+
+**依赖：**
+```bash
+pip install opencv-python scikit-image pandas xlsxwriter python-docx openai
+```
+
+---
+
 ## 📁 目录结构
 
 ```
 agfsskill/
-├── README.md                          # 本文件
+├── README.md
 └── skills/
-    └── one-click-inspection/
-        ├── SKILL.md                   # 技能说明
-        ├── assets/
-        │   └── report-preview.html    # 报告样张
+    ├── one-click-inspection/
+    │   ├── SKILL.md
+    │   ├── assets/
+    │   │   └── report-preview.html
+    │   └── scripts/
+    │       ├── win_inspection_html.py
+    │       └── linux_inspect.sh
+    └── video-test-gen/
+        ├── SKILL.md
+        ├── references/
+        │   └── test_records_template.docx
         └── scripts/
-            ├── win_inspection_html.py # Windows 巡检脚本 (Python)
-            └── linux_inspect.sh       # Linux 巡检脚本 (Bash, v2.5)
+            ├── analyze_frames.py
+            ├── extract_keyframes.py
+            ├── generate_reports.py
+            ├── generate_test_records.py
+            ├── merge_test_cases.py
+            └── pipeline.py
 ```
 
 ## ⚙️ 环境要求
 
-- **Windows**: Python 3.10+（兼容至 3.13），推荐以管理员权限运行
-- **Linux**: Bash 4.0+，建议以 root/sudo 权限运行
+| 技能 | 环境 |
+|---|---|
+| one-click-inspection | Windows: Python 3.10+，推荐管理员权限；Linux: Bash 4.0+，推荐 root/sudo |
+| video-test-gen | Python 3.9+，需安装 opencv-python / pandas / xlsxwriter / python-docx / openai |
 
 ## 📄 许可证
 
