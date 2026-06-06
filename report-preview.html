@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Windows 系统巡检报告 - DESKTOP-6IU60QE</title>
+<style>
+  :root {
+    --c-primary: #1976d2;
+    --c-primary-2: #1565c0;
+    --c-primary-dark: #0d47a1;
+    --c-primary-soft: #e8f1fc;
+    --c-primary-soft-2: #f0f6ff;
+    --c-text: #1f2937;
+    --c-text-2: #4b5563;
+    --c-muted: #6b7280;
+    --c-bg: #f3f5f9;
+    --c-card: #ffffff;
+    --c-border: #d9dee7;
+    --c-border-light: #eaedf3;
+    --c-stripe: #fafbfd;
+    --c-ok: #16a34a;
+    --c-ok-soft: #e9f8ee;
+    --c-warn: #d97706;
+    --c-warn-soft: #fff4e0;
+    --c-crit: #dc2626;
+    --c-crit-soft: #fde8e8;
+    --c-info: #1976d2;
+    --c-info-soft: #e8f1fc;
+    --c-side-bg: #0f172a;
+    --c-side-text: #cbd5e1;
+    --c-side-muted: #64748b;
+    --c-side-active: rgba(25,118,210,0.18);
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
+    --shadow-sm: 0 1px 2px rgba(15,23,42,0.05);
+    --shadow-md: 0 2px 8px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.05);
+    --shadow-lg: 0 8px 24px rgba(15,23,42,0.10);
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Code", "JetBrains Mono", Consolas, "Liberation Mono", "Menlo", "Courier New", monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--font-sans); font-size: 14px; background: var(--c-bg); color: var(--c-text); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .toc { position: fixed; left: 0; top: 0; bottom: 0; width: 220px; background: var(--c-side-bg); padding: 22px 0 16px; overflow-y: auto; z-index: 10; }
+  .toc-brand { padding: 0 22px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+  .toc-brand .logo { width: 28px; height: 28px; background: var(--c-primary); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .toc-brand .logo svg { width: 16px; height: 16px; fill: #fff; }
+  .toc-brand .meta .name { font-size: 13px; font-weight: 600; color: #fff; letter-spacing: 0.2px; }
+  .toc-brand .meta .ver { font-size: 11px; color: var(--c-side-muted); font-family: var(--font-mono); margin-top: 1px; }
+  .toc a { display: flex; align-items: center; gap: 10px; padding: 9px 22px; color: var(--c-side-text); font-size: 13px; text-decoration: none; border-left: 3px solid transparent; transition: background 0.12s, color 0.12s, border-color 0.12s; }
+  .toc a:hover { background: rgba(255,255,255,0.05); color: #fff; }
+  .toc a.active { background: var(--c-side-active); border-left-color: var(--c-primary); color: #fff; font-weight: 500; }
+  .toc a svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.7; }
+  .toc a.active svg { opacity: 1; }
+  .container { max-width: 1280px; margin: 24px auto 24px 240px; padding: 0 28px; }
+  .header { background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-dark) 100%); color: #fff; padding: 22px 28px 18px; border-radius: var(--radius-lg); margin-bottom: 18px; box-shadow: var(--shadow-md); position: relative; overflow: hidden; }
+  .header::after { content: ""; position: absolute; right: -40px; top: -40px; width: 240px; height: 240px; background: radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%); pointer-events: none; }
+  .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; position: relative; z-index: 1; }
+  .header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.2px; }
+  .header h1 .tag { display: inline-block; background: rgba(255,255,255,0.20); color: #fff; font-size: 11px; padding: 3px 9px; border-radius: var(--radius-sm); margin-right: 8px; vertical-align: middle; font-weight: 600; }
+  .header-action { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.15); color: #fff; padding: 7px 14px; border-radius: var(--radius-sm); font-size: 12px; border: 1px solid rgba(255,255,255,0.25); cursor: default; }
+  .header-action svg { width: 13px; height: 13px; fill: currentColor; }
+  .header-meta { display: flex; flex-wrap: wrap; gap: 22px 32px; position: relative; z-index: 1; }
+  .header-meta .field { font-size: 12.5px; }
+  .header-meta .field .k { color: rgba(255,255,255,0.7); margin-right: 6px; }
+  .header-meta .field .v { color: #fff; font-weight: 500; font-family: var(--font-mono); }
+  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+  .summary-card { background: var(--c-card); border-radius: var(--radius-md); padding: 14px; box-shadow: var(--shadow-sm); border: 1px solid var(--c-border-light); display: flex; align-items: center; gap: 12px; }
+  .summary-card .ico { width: 38px; height: 38px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .summary-card .ico svg { width: 18px; height: 18px; fill: #fff; }
+  .summary-card.s-ok .ico { background: var(--c-ok); }
+  .summary-card.s-warn .ico { background: var(--c-warn); }
+  .summary-card.s-crit .ico { background: var(--c-crit); }
+  .summary-card.s-info .ico { background: var(--c-primary); }
+  .summary-card.s-purple .ico { background: #8b5cf6; }
+  .summary-card .body { flex: 1; min-width: 0; }
+  .summary-card .num { font-family: var(--font-sans); font-size: 22px; font-weight: 700; line-height: 1.1; letter-spacing: -0.5px; }
+  .summary-card .label { font-size: 11px; color: var(--c-muted); margin-top: 4px; line-height: 1.3; }
+  .num.green { color: var(--c-ok); }
+  .num.orange { color: var(--c-warn); }
+  .num.red { color: var(--c-crit); }
+  .section { background: var(--c-card); border-radius: var(--radius-lg); margin-bottom: 14px; box-shadow: var(--shadow-sm); border: 1px solid var(--c-border-light); overflow: hidden; }
+  .section[id] { scroll-margin-top: 16px; }
+  .section > *:not(h2) { padding-left: 24px; padding-right: 24px; }
+  .section > h2 { font-size: 15px; font-weight: 700; color: var(--c-primary-dark); margin: 0; padding: 12px 22px; background: var(--c-primary-soft-2); border-bottom: 1px solid var(--c-border-light); display: flex; align-items: center; }
+  .section > h2 .num { display: inline-block; color: var(--c-primary); font-weight: 700; margin-right: 8px; min-width: 18px; }
+  .section > *:first-child + * { padding-top: 18px; }
+  .section > *:last-child { padding-bottom: 20px; }
+  .section h3 { font-size: 12.5px; font-weight: 600; color: var(--c-text-2); margin: 18px 0 10px; }
+  .section h3:first-of-type { margin-top: 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+  th { background: var(--c-primary-soft-2); text-align: left; padding: 10px 12px; font-weight: 600; font-size: 12px; color: var(--c-text-2); border-bottom: 1px solid var(--c-border-light); white-space: nowrap; }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--c-border-light); word-break: break-all; vertical-align: top; font-size: 12.5px; line-height: 1.5; color: var(--c-text); }
+  tr:nth-child(even) td { background: var(--c-stripe); }
+  tr:hover td { background: var(--c-primary-soft); }
+  tr:last-child td { border-bottom: none; }
+  td.text { font-family: var(--font-sans); font-size: 13px; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11.5px; font-weight: 600; line-height: 1.5; font-family: var(--font-sans); }
+  .badge.ok { background: var(--c-ok-soft); color: var(--c-ok); }
+  .badge.warning { background: var(--c-warn-soft); color: var(--c-warn); }
+  .badge.critical { background: var(--c-crit-soft); color: var(--c-crit); }
+  .badge.info { background: var(--c-info-soft); color: var(--c-info); }
+  .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px 28px; }
+  .info-item { padding: 10px 0; border-bottom: 1px dashed var(--c-border-light); }
+  .info-item:nth-last-child(-n+4) { border-bottom: none; }
+  .info-item .key { color: var(--c-muted); font-size: 11.5px; display: block; margin-bottom: 3px; font-weight: 500; }
+  .info-item .val { color: var(--c-text); font-size: 13px; word-break: break-all; font-weight: 500; }
+  .progress-bar { background: var(--c-border-light); border-radius: var(--radius-sm); height: 6px; overflow: hidden; display: inline-block; width: 90px; vertical-align: middle; margin-right: 8px; }
+  .progress-fill { height: 100%; transition: width 0.3s; }
+  .fill-ok { background: var(--c-ok); }
+  .fill-warn { background: var(--c-warn); }
+  .fill-crit { background: var(--c-crit); }
+  .risk-box { display: inline-block; padding: 2px 14px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 700; }
+  .risk-box.high { background: var(--c-crit-soft); color: var(--c-crit); }
+  .risk-box.mid { background: var(--c-warn-soft); color: var(--c-warn); }
+  .risk-box.low { background: var(--c-ok-soft); color: var(--c-ok); }
+  .issue-list { list-style: none; padding: 0; margin: 8px 0; }
+  .issue-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 6px; border: 1px solid var(--c-border-light); }
+  .issue-item .level { flex-shrink: 0; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-sm); }
+  .issue-item .level.high { background: var(--c-crit-soft); color: var(--c-crit); }
+  .issue-item .level.mid { background: var(--c-warn-soft); color: var(--c-warn); }
+  .issue-item .level.low { background: var(--c-ok-soft); color: var(--c-ok); }
+  .issue-item .desc { flex: 1; font-size: 13px; color: var(--c-text); }
+  pre { background: #0f172a; color: #cbd5e1; border: 1px solid #1e293b; padding: 14px 16px; border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 12px; line-height: 1.6; overflow-x: auto; white-space: pre-wrap; word-break: break-all; max-height: 340px; overflow-y: auto; margin-bottom: 4px; }
+  .footer { text-align: center; color: var(--c-muted); font-size: 12px; padding: 22px 0 12px; }
+  .footer .sep { color: var(--c-border); margin: 0 8px; }
+  @media (max-width: 900px) {
+    .toc { position: relative; width: 100%; height: auto; padding: 14px 16px; }
+    .toc a { display: inline-flex; padding: 4px 10px; border-left: none; border-radius: var(--radius-sm); margin: 2px; font-size: 12px; }
+    .container { margin-left: auto; margin-right: auto; padding: 16px; }
+    .summary { grid-template-columns: repeat(2, 1fr); }
+    .info-grid { grid-template-columns: 1fr; }
+    .header-action { display: none; }
+  }
+  @media print {
+    body { background: #fff; font-size: 10.5pt; color: #000; }
+    .toc, .footer, .header-action { display: none !important; }
+    .container { margin: 0; max-width: 100%; padding: 0; }
+    .header { background: var(--c-primary-2) !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .section, .summary-card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
+    table { page-break-inside: auto; }
+    tr { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<nav class="toc">
+  <div class="toc-brand">
+    <div class="logo"><svg viewBox="0 0 24 24"><path d="M4 4h16v2H4zm0 5h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></div>
+    <div class="meta">
+      <div class="name">Windows Inspection</div>
+      <div class="ver">v2.0</div>
+    </div>
+  </div>
+  <a href="#sec-summary">概览</a>
+  <a href="#sec-s1">一、主机基本信息</a>
+  <a href="#sec-s2">二、硬件资源状态</a>
+  <a href="#sec-s3">三、网络配置与连接</a>
+  <a href="#sec-s4">四、安全配置审计</a>
+  <a href="#sec-s5">五、用户与权限</a>
+  <a href="#sec-s6">六、进程与服务</a>
+  <a href="#sec-s7">七、启动项与计划任务</a>
+  <a href="#sec-s8">八、已安装软件</a>
+  <a href="#sec-s9">九、事件日志分析</a>
+  <a href="#sec-s10">十、Docker 与容器</a>
+  <a href="#sec-s11">十一、NPU 与 AI 推理</a>
+  <a href="#sec-s12">十二、电源与散热</a>
+  <a href="#sec-s13">十三、风险评估与建议</a>
+</nav>
+<div class="container">
+<div class="header">
+  <div class="header-top">
+    <h1><span class="tag">Windows</span>系统巡检报告</h1>
+    <div class="header-action"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>巡检完成</div>
+  </div>
+  <div class="header-meta">
+    <div class="field"><span class="k">主机名</span><span class="v">DESKTOP-6IU60QE</span></div>
+    <div class="field"><span class="k">操作系统</span><span class="v">Microsoft Windows 11 家庭版 中文版</span></div>
+    <div class="field"><span class="k">运行时间</span><span class="v">0天 14小时 44分钟</span></div>
+    <div class="field"><span class="k">巡检日期</span><span class="v">2026-06-06</span></div>
+    <div class="field"><span class="k">巡检人员</span><span class="v">DESKTOP-6IU60QE\YFJZ</span></div>
+    <div class="field"><span class="k">综合风险</span><span class="v"><span class="risk-box high">高</span></span></div>
+  </div>
+</div>
+<div class="summary" id="sec-summary">
+  <div class="summary-card s-info">
+    <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></div>
+    <div class="body"><div class="num"></div><div class="label">CPU 线程 /  核心</div></div>
+  </div>
+  <div class="summary-card s-ok">
+    <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg></div>
+    <div class="body"><div class="num">22.8 / 31.7 GB</div><div class="label">内存使用 <span class="progress-bar"><span class="progress-fill fill-warn" style="width:71.7%"></span></span><span class="num orange">71.7%</span></div></div>
+  </div>
+  <div class="summary-card s-purple">
+    <div class="ico"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg></div>
+    <div class="body"><div class="num">488</div><div class="label">进程数 / 164 服务运行中</div></div>
+  </div>
+  <div class="summary-card s-crit">
+    <div class="ico"><svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg></div>
+    <div class="body"><div class="num red">1</div><div class="label">发现问题 · 风险 高</div></div>
+  </div>
+</div>
+<div class="section" id="sec-s1">
+  <h2><span class="num">一</span>目标主机基本信息</h2>
+  <div class="info-grid">
+    <div class="info-item"><span class="key">计算机名</span><span class="val">DESKTOP-6IU60QE</span></div>
+    <div class="info-item"><span class="key">操作系统</span><span class="val">Microsoft Windows 11 家庭版 中文版</span></div>
+    <div class="info-item"><span class="key">架构</span><span class="val">x64-based PC</span></div>
+    <div class="info-item"><span class="key">域/工作组</span><span class="val">N/A</span></div>
+    <div class="info-item"><span class="key">主板</span><span class="val">LENOVO LNVNB161216</span></div>
+    <div class="info-item"><span class="key">BIOS</span><span class="val">LENOVO HYCN42WW</span></div>
+    <div class="info-item"><span class="key">许可证</span><span class="val">已授权 (Retail)</span></div>
+    <div class="info-item"><span class="key">运行时间</span><span class="val">0天 14小时 44分钟</span></div>
+    <div class="info-item"><span class="key">安全启动</span><span class="val">不支持/不可用</span></div>
+    <div class="info-item"><span class="key">电源计划</span><span class="val">平衡</span></div>
+  </div>
+</div>
+<div class="section" id="sec-s2">
+  <h2><span class="num">二</span>硬件资源状态</h2>
+  <h3>CPU</h3>
+  <table><tr><th>型号</th><th>核心数</th><th>线程数</th><th>频率</th><th>使用率</th></tr>
+    <tr><td class="text"></td><td></td><td></td><td> MHz</td><td>9%</td></tr>
+  </table>
+  <h3>内存</h3>
+  <table><tr><th>总计</th><th>已用</th><th>空闲</th><th>使用率</th></tr>
+    <tr><td>31.73 GB</td><td>22.75 GB</td><td>8.98 GB</td>
+    <td><span class="progress-bar"><span class="progress-fill fill-warn" style="width:71.7%"></span></span><span class="num orange">71.7%</span></td></tr>
+  </table>
+  <h3>内存条信息</h3>
+  <table><tr><th>制造商</th><th>容量</th><th>频率</th><th>型号</th></tr>
+    <tr><td>Samsung</td><td>4GB</td><td>6400MHz</td><td>K3LKCKC@BM-MGCP</td></tr>
+    <tr><td>Samsung</td><td>4GB</td><td>6400MHz</td><td>K3LKCKC@BM-MGCP</td></tr>
+    <tr><td>Samsung</td><td>4GB</td><td>6400MHz</td><td>K3LKCKC@BM-MGCP</td></tr>
+    <tr><td>Samsung</td><td>4GB</td><td>6400MHz</td><td>K3LKCKC@BM-MGCP</td></tr>
+    <tr><td>Samsung</td><td>4GB</td><td>6400MHz</td><td>K3LKCKC@BM-MGCP</td></tr>
+    <tr><td>Samsung</td><td>4GB</td><td>6400MHz</td><td>K3LKCKC@BM-MGCP</td></tr>
+    <tr><td>Samsung</td><td>4GB</td><td>6400MHz</td><td>K3LKCKC@BM-MGCP</td></tr>
+    <tr><td>Samsung</td><td>4GB</td><td>6400MHz</td><td>K3LKCKC@BM-MGCP</td></tr>
+  </table>
+  <h3>磁盘存储</h3>
+  <table><tr><th>盘符</th><th>卷标</th><th>总容量</th><th>已用</th><th>可用</th><th>使用率</th></tr>
+    <tr><td><b>C:</b></td><td>Windows-SSD</td><td>600 GB</td><td>404 GB</td><td>196 GB</td><td><span class="progress-bar"><span class="progress-fill fill-ok" style="width:67.4%"></span></span><span class="num green">67.4%</span></td></tr>
+    <tr><td><b>D:</b></td><td>新加卷</td><td>500 GB</td><td>467 GB</td><td>33 GB</td><td><span class="progress-bar"><span class="progress-fill fill-crit" style="width:93.4%"></span></span><span class="num red">93.4%</span></td></tr>
+    <tr><td><b>F:</b></td><td>新加卷</td><td>762 GB</td><td>739 GB</td><td>22 GB</td><td><span class="progress-bar"><span class="progress-fill fill-crit" style="width:97.1%"></span></span><span class="num red">97.1%</span></td></tr>
+  </table>
+  <h3>物理磁盘健康</h3>
+  <table><tr><th>磁盘</th><th>类型</th><th>大小</th><th>总线</th><th>状态</th></tr>
+    <tr><td>WD Green SN350 2TB</td><td>Fixed hard disk media</td><td>1863GB</td><td>SCSI</td><td><span class="badge critical">OK</span></td></tr>
+  </table>
+  <h3>GPU / 驱动</h3>
+  <table><tr><th>GPU</th><th>驱动版本</th></tr>
+    <tr><td class="text"></td><td></td></tr>
+  </table>
+</div>
+<div class="section" id="sec-s3">
+  <h2><span class="num">三</span>网络配置与连接</h2>
+  <h3>网络适配器</h3>
+  <table><tr><th>名称</th><th>状态</th><th>速率</th><th>MAC 地址</th></tr>
+    <tr><td class="text">WLAN</td><td><span class="badge ok">Up</span></td><td>866.7 Mbps</td><td>10-B1-DF-81-0E-C1</td></tr>
+    <tr><td class="text">以太网</td><td><span class="badge info">Disconnected</span></td><td>0 bps</td><td>98-8F-E0-6B-91-59</td></tr>
+  </table>
+  <h3>IP 地址分配</h3>
+  <table><tr><th>适配器</th><th>IPv4 地址</th><th>子网</th><th>来源</th></tr>
+    <tr><td class="text">VMware Network Adapter VMnet8</td><td><b>192.168.208.1</b></td><td>/24</td><td>手动</td></tr>
+    <tr><td class="text">VMware Network Adapter VMnet1</td><td><b>192.168.3.1</b></td><td>/24</td><td>手动</td></tr>
+    <tr><td class="text">以太网 2</td><td><b>169.254.159.163</b></td><td>/16</td><td>自动</td></tr>
+    <tr><td class="text">本地连接* 3</td><td><b>169.254.208.70</b></td><td>/16</td><td>自动</td></tr>
+    <tr><td class="text">以太网</td><td><b>192.168.1.120</b></td><td>/24</td><td>手动</td></tr>
+    <tr><td class="text">以太网</td><td><b>169.254.150.213</b></td><td>/16</td><td>自动</td></tr>
+    <tr><td class="text">WLAN</td><td><b>192.168.0.109</b></td><td>/24</td><td>DHCP</td></tr>
+  </table>
+  <div class="info-grid">
+    <div class="info-item"><span class="key">默认网关</span><span class="val">192.168.0.1</span></div>
+    <div class="info-item"><span class="key">DNS 服务器</span><span class="val">8.8.8.8, 8.8.4.4</span></div>
+    <div class="info-item"><span class="key">网络流量</span><span class="val">接收 3216 MB / 发送 426 MB</span></div>
+    <div class="info-item"><span class="key">连接统计</span><span class="val">已建立 58 | 监听 0 | TIME_WAIT 2</span></div>
+  </div>
+  <h3>监听端口</h3>
+  <table><tr><th>端口</th><th>进程</th><th>监听范围</th><th>说明</th></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td><b></b></td><td class="text"></td><td>ALL</td><td style="color:var(--c-muted)"></td></tr>
+    <tr><td colspan="4" style="color:var(--c-muted)">... 共 68 个端口</td></tr>
+  </table>
+  <h3>共享文件夹</h3>
+  <table><tr><th>共享名</th><th>路径</th></tr>
+    <tr><td>ADMIN$</td><td class="text">C:\WINDOWS</td></tr>
+    <tr><td>C$</td><td class="text">C:\</td></tr>
+    <tr><td>D$</td><td class="text">D:\</td></tr>
+    <tr><td>F$</td><td class="text">F:\</td></tr>
+    <tr><td>IPC$</td><td class="text"></td></tr>
+  </table>
+</div>
+<div class="section" id="sec-s4">
+  <h2><span class="num">四</span>安全配置审计</h2>
+  <div class="info-grid">
+    <div class="info-item"><span class="key">防火墙(域)</span><span class="val">True</span></div>
+    <div class="info-item"><span class="key">防火墙(专用)</span><span class="val">False</span></div>
+    <div class="info-item"><span class="key">防火墙(公用)</span><span class="val">False</span></div>
+    <div class="info-item"><span class="key">RDP 端口</span><span class="val">3389</span></div>
+    <div class="info-item"><span class="key">RDP 启用</span><span class="val">已禁用</span></div>
+    <div class="info-item"><span class="key">RDP NLA</span><span class="val">已启用</span></div>
+    <div class="info-item"><span class="key">BitLocker</span><span class="val">未启用/不可用</span></div>
+    <div class="info-item"><span class="key">Defender 防病毒</span><span class="val">False | 实时: False</span></div>
+    <div class="info-item"><span class="key">病毒库版本</span><span class="val"> ()</span></div>
+    <div class="info-item"><span class="key">审计策略</span><span class="val">需要管理员权限</span></div>
+    <div class="info-item"><span class="key">时间同步</span><span class="val"></span></div>
+    <div class="info-item"><span class="key">时间源</span><span class="val"></span></div>
+  </div>
+  <h3>密码策略</h3>
+  <table><tr><th>策略项</th><th>值</th></tr>
+    <tr><td class="text">Force user logoff how long after time expires?</td><td>Never</td></tr>
+    <tr><td class="text">Minimum password age (days)</td><td>0</td></tr>
+    <tr><td class="text">Maximum password age (days)</td><td>42</td></tr>
+    <tr><td class="text">Minimum password length</td><td>0</td></tr>
+    <tr><td class="text">Length of password history maintained</td><td>None</td></tr>
+    <tr><td class="text">Lockout threshold</td><td>Never</td></tr>
+    <tr><td class="text">Lockout duration (minutes)</td><td>30</td></tr>
+    <tr><td class="text">Lockout observation window (minutes)</td><td>30</td></tr>
+    <tr><td class="text">Computer role</td><td>WORKSTATION</td></tr>
+  </table>
+  <h3>系统更新</h3>
+  <table><tr><th>补丁号</th><th>类型</th><th>安装日期</th></tr>
+    <tr><td><b>KB5089549</b></td><td>Security Update</td><td>2026-05-14</td></tr>
+    <tr><td><b>KB5087051</b></td><td>Update</td><td>2026-05-14</td></tr>
+    <tr><td><b>KB5092762</b></td><td>Security Update</td><td>2026-05-13</td></tr>
+    <tr><td><b>KB5054156</b></td><td>Update</td><td>2026-01-29</td></tr>
+  </table>
+</div>
+<div class="section" id="sec-s5">
+  <h2><span class="num">五</span>用户与权限</h2>
+  <h3>本地用户</h3>
+  <table><tr><th>用户名</th><th>启用</th><th>最后登录</th></tr>
+    <tr><td>Administrator</td><td><span class="badge info">否</span></td><td>2022-08-11</td></tr>
+    <tr><td>CodexSandboxOffline</td><td><span class="badge ok">是</span></td><td>2026-05-30</td></tr>
+    <tr><td>CodexSandboxOnline</td><td><span class="badge ok">是</span></td><td></td></tr>
+    <tr><td>DefaultAccount</td><td><span class="badge info">否</span></td><td></td></tr>
+    <tr><td>Guest</td><td><span class="badge info">否</span></td><td></td></tr>
+    <tr><td>WDAGUtilityAccount</td><td><span class="badge info">否</span></td><td></td></tr>
+    <tr><td>YFJZ</td><td><span class="badge ok">是</span></td><td>2026-06-06</td></tr>
+  </table>
+  <h3>管理员组成员</h3>
+  <table><tr><th>成员</th></tr>
+    <tr><td class="text">DESKTOP-6IU60QE\Administrator</td></tr>
+    <tr><td class="text">DESKTOP-6IU60QE\YFJZ</td></tr>
+  </table>
+</div>
+<div class="section" id="sec-s6">
+  <h2><span class="num">六</span>进程与服务分析</h2>
+  <div class="info-grid">
+    <div class="info-item"><span class="key">进程总数</span><span class="val">488</span></div>
+    <div class="info-item"><span class="key">运行中服务</span><span class="val">164</span></div>
+  </div>
+  <h3>内存占用 Top 10</h3>
+  <table><tr><th>#</th><th>进程名</th><th>PID</th><th>内存 (MB)</th></tr>
+    <tr><td>1</td><td class="text">Memory Compression</td><td>3756</td><td>2860</td></tr>
+    <tr><td>2</td><td class="text">WPS 灵犀.exe</td><td>17860</td><td>2808</td></tr>
+    <tr><td>3</td><td class="text">everything.exe</td><td>6572</td><td>1239</td></tr>
+    <tr><td>4</td><td class="text">CodeBuddy CN.exe</td><td>564</td><td>695</td></tr>
+    <tr><td>5</td><td class="text">msedge.exe</td><td>17312</td><td>475</td></tr>
+    <tr><td>6</td><td class="text">msedge.exe</td><td>21644</td><td>451</td></tr>
+    <tr><td>7</td><td class="text">explorer.exe</td><td>14484</td><td>404</td></tr>
+    <tr><td>8</td><td class="text">Weixin.exe</td><td>27304</td><td>356</td></tr>
+    <tr><td>9</td><td class="text">CodeBuddy CN.exe</td><td>2116</td><td>321</td></tr>
+    <tr><td>10</td><td class="text">java.exe</td><td>8912</td><td>320</td></tr>
+  </table>
+</div>
+<div class="section" id="sec-s7">
+  <h2><span class="num">七</span>启动项与计划任务</h2>
+  <h3>启动项</h3>
+  <table><tr><th>名称</th><th>命令</th></tr>
+    <tr><td class="text">Synology Drive Client</td><td class="text" style="font-family:var(--font-mono);font-size:12px">Synology Drive Client.lnk</td></tr>
+    <tr><td class="text">ApifoxAppAgent</td><td class="text" style="font-family:var(--font-mono);font-size:12px">C:\Users\YFJZ\AppData\Roaming\apifox\ApifoxAppAgent.exe</td></tr>
+    <tr><td class="text">TFFserver</td><td class="text" style="font-family:var(--font-mono);font-size:12px">C:\Users\YFJZ\AppData\Roaming\PTB\Bin\PTBService.exe</td></tr>
+    <tr><td class="text">hxrobot</td><td class="text" style="font-family:var(--font-mono);font-size:12px">D:\20250529\THS_freeldy_9.40.40_0228\同花顺\robot\elf.exe</td></tr>
+    <tr><td class="text">EdrawMaxTray</td><td class="text" style="font-family:var(--font-mono);font-size:12px">D:\Program Files\Edrawsoft\EdrawMax（简体中文）(百度)（CPC）\EdrawMaxTray.exe</td></tr>
+    <tr><td class="text">UWST_Agent</td><td class="text" style="font-family:var(--font-mono);font-size:12px">&quot;C:\Users\YFJZ\AppData\Local\UWST\UWSTService.exe&quot; service</td></tr>
+    <tr><td class="text">Assistant</td><td class="text" style="font-family:var(--font-mono);font-size:12px">C:\Users\YFJZ\AppData\Local\HTSE\5.0\htbrowser\Application\5.0.3.13\update\Assistant.exe</td></tr>
+    <tr><td class="text">OneDrive</td><td class="text" style="font-family:var(--font-mono);font-size:12px">&quot;C:\Program Files\Microsoft OneDrive\OneDrive.exe&quot; /background</td></tr>
+    <tr><td class="text">com.wps.lingxi</td><td class="text" style="font-family:var(--font-mono);font-size:12px">&quot;D:\Programs\lingxi-desktop\WPS 灵犀.exe&quot; --auto-launched</td></tr>
+    <tr><td class="text">kso_vas_kscreengrabtray</td><td class="text" style="font-family:var(--font-mono);font-size:12px">&quot;C:\Users\YFJZ\AppData\Local\Kingsoft\WPS Office\ksolaunch.exe&quot; /wpscloudlaunch /run_ap...</td></tr>
+    <tr><td class="text">ESHOW_Sev</td><td class="text" style="font-family:var(--font-mono);font-size:12px">C:\Users\YFJZ\AppData\Local\ESHOW\donglemonitor.exe</td></tr>
+    <tr><td class="text">MicrosoftEdgeAutoLaunch_420A129E8179011AF0AC0389C814038F</td><td class="text" style="font-family:var(--font-mono);font-size:12px">&quot;C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe&quot; --no-startup-window --wi...</td></tr>
+    <tr><td class="text">iSignature 组件服务</td><td class="text" style="font-family:var(--font-mono);font-size:12px">C:\WINDOWS\ServiceProfiles\NetworkService\AppData\Roaming\Kinggrid\iSignature_V9\KGClie...</td></tr>
+    <tr><td class="text">LoadRunner Agent Process</td><td class="text" style="font-family:var(--font-mono);font-size:12px">D:\Program Files (x86)\HP\LoadRunner\launch_service\bin\magentproc.exe</td></tr>
+    <tr><td class="text">SecurityHealth</td><td class="text" style="font-family:var(--font-mono);font-size:12px">%windir%\system32\SecurityHealthSystray.exe</td></tr>
+    <tr><td class="text">RtkAudUService</td><td class="text" style="font-family:var(--font-mono);font-size:12px">&quot;C:\WINDOWS\System32\DriverStore\FileRepository\realtekservice.inf_amd64_04ff63d068f8c6...</td></tr>
+    <tr><td class="text">SunloginClient</td><td class="text" style="font-family:var(--font-mono);font-size:12px">&quot;D:\Program Files\Oray\SunLogin\SunloginClient\SunloginClient.exe&quot; --cmd=autorun</td></tr>
+    <tr><td class="text">ComputerZ-Tray</td><td class="text" style="font-family:var(--font-mono);font-size:12px">&quot;C:\Program Files (x86)\LuDaShi\ComputerZTinyTray.exe&quot;</td></tr>
+  </table>
+  <h3>非微软计划任务（共 0 个）</h3>
+  <table><tr><th>任务名称</th><th>状态</th><th>操作</th></tr>
+  </table>
+</div>
+<div class="section" id="sec-s8">
+  <h2><span class="num">八</span>已安装软件</h2>
+  <p style="font-size:12.5px;color:var(--c-muted);margin-bottom:4px">共 200 款软件</p>
+  <table><tr><th>软件名称</th><th>版本</th><th>发布者</th><th>安装日期</th></tr>
+    <tr><td class="text">UiAuto 2.3.0</td><td>2.3.0</td><td class="text">Legion</td><td></td></tr>
+    <tr><td class="text">webrunner 5.9.2</td><td>5.9.2</td><td class="text">GitHub</td><td></td></tr>
+    <tr><td class="text">ZtestPerf 2.1.10</td><td>2.1.10</td><td class="text">UUSENSE</td><td></td></tr>
+    <tr><td class="text">CodeArts API 2.0.7</td><td>2.0.7</td><td class="text"></td><td></td></tr>
+    <tr><td class="text">NVM for Windows 1.2.2</td><td>1.2.2</td><td class="text">Author Software Inc.</td><td>20251217</td></tr>
+    <tr><td class="text">Cherry Studio</td><td>1.6.7</td><td class="text">support@cherry-ai.com</td><td></td></tr>
+    <tr><td class="text">WeAutomate Studio Education 3.3.0</td><td>3.3.0</td><td class="text">Huawei Technologies Co., Ltd.</td><td></td></tr>
+    <tr><td class="text">7-Zip 23.00 (x64)</td><td>23.00</td><td class="text">Igor Pavlov</td><td></td></tr>
+    <tr><td class="text">ShareX</td><td>15.0.0</td><td class="text">ShareX Team</td><td>20240226</td></tr>
+    <tr><td class="text">GreenHub 2.2.1</td><td>2.2.1</td><td class="text">greenhub01@gmail.com</td><td></td></tr>
+    <tr><td class="text">腾讯应用宝移动应用引擎</td><td>5.10.60.10</td><td class="text">腾讯科技(深圳)有限公司</td><td></td></tr>
+    <tr><td class="text">AionUi</td><td>1.7.7</td><td class="text">AionUi</td><td></td></tr>
+    <tr><td class="text">Git</td><td>2.50.1</td><td class="text">The Git Development Community</td><td>20250729</td></tr>
+    <tr><td class="text">HMS Core</td><td>6.9.0.300</td><td class="text">Huawei Technologies Co., Ltd.</td><td></td></tr>
+    <tr><td class="text">Marvis</td><td>1.60.10.11</td><td class="text">腾讯科技(深圳)有限公司</td><td></td></tr>
+    <tr><td class="text">Project安装助手</td><td>211.23.12.215</td><td class="text">Meido</td><td></td></tr>
+    <tr><td class="text">Molili</td><td>1.0.2</td><td class="text">molili</td><td></td></tr>
+    <tr><td class="text">Mozilla Firefox (x64 zh-CN)</td><td>127.0</td><td class="text">Mozilla</td><td></td></tr>
+    <tr><td class="text">Mozilla Firefox 56.0 (x64 zh-CN)</td><td>56.0</td><td class="text">Mozilla</td><td></td></tr>
+    <tr><td class="text">Mozilla Maintenance Service</td><td>56.0</td><td class="text">Mozilla</td><td></td></tr>
+    <tr><td class="text">Project安装助手</td><td>213.3123.7.6539</td><td class="text">office</td><td></td></tr>
+    <tr><td class="text">Microsoft OneDrive</td><td>26.084.0504.0007</td><td class="text">Microsoft Corporation</td><td></td></tr>
+    <tr><td class="text">OpenSSL 3.5.3 Light (64-bit)</td><td>3.5.3</td><td class="text">OpenSSL Win64 Installer Team</td><td>20250923</td></tr>
+    <tr><td class="text">Microsoft Office 专业增强版 2016  - zh-cn</td><td>16.0.19127.20302</td><td class="text">Microsoft Corporation</td><td></td></tr>
+    <tr><td class="text">QClaw</td><td>0.2.23.532</td><td class="text">Tencent</td><td></td></tr>
+    <tr><td colspan="4" style="color:var(--c-muted)">... 共 200 个，仅显示前 25 个</td></tr>
+  </table>
+</div>
+<div class="section" id="sec-s9">
+  <h2><span class="num">九</span>事件日志分析</h2>
+  <div class="info-grid">
+    <div class="info-item"><span class="key">系统日志事件</span><span class="val">200</span></div>
+    <div class="info-item"><span class="key">应用日志事件</span><span class="val">200</span></div>
+  </div>
+  <h3>系统日志聚合</h3>
+  <table><tr><th>事件 ID</th><th>级别</th><th>来源</th><th>描述</th><th>次数</th></tr>
+    <tr><td>36871</td><td><span class="badge info">Schannel</span></td><td class="text">Schannel</td><td class="text"></td><td>104</td></tr>
+    <tr><td>3503</td><td><span class="badge info">Microsoft-Windows-DeviceAssociationService</span></td><td class="text">Microsoft-Windows-DeviceAssociationService</td><td class="text"></td><td>1</td></tr>
+    <tr><td>27</td><td><span class="badge info">e1dexpress</span></td><td class="text">e1dexpress</td><td class="text"></td><td>92</td></tr>
+    <tr><td>701</td><td><span class="badge info">Win32k</span></td><td class="text">Win32k</td><td class="text"></td><td>2</td></tr>
+    <tr><td>1014</td><td><span class="badge info">Microsoft-Windows-DNS-Client</span></td><td class="text">Microsoft-Windows-DNS-Client</td><td class="text"></td><td>1</td></tr>
+  </table>
+  <h3>应用日志聚合</h3>
+  <table><tr><th>事件 ID</th><th>级别</th><th>来源</th><th>描述</th><th>次数</th></tr>
+    <tr><td>4096</td><td><span class="badge info">VBScriptDeprecationAlert</span></td><td class="text">VBScriptDeprecationAlert</td><td class="text"></td><td>35</td></tr>
+    <tr><td>1026</td><td><span class="badge info">.NET Runtime</span></td><td class="text">.NET Runtime</td><td class="text"></td><td>5</td></tr>
+    <tr><td>1022</td><td><span class="badge info">.NET Runtime</span></td><td class="text">.NET Runtime</td><td class="text"></td><td>37</td></tr>
+    <tr><td>64</td><td><span class="badge info">Microsoft-Windows-CertificateServicesClient-AutoEnrollment</span></td><td class="text">Microsoft-Windows-CertificateServicesClient-AutoEnrollment</td><td class="text"></td><td>7</td></tr>
+    <tr><td>100</td><td><span class="badge info">MariaDB</span></td><td class="text">MariaDB</td><td class="text"></td><td>9</td></tr>
+    <tr><td>10024</td><td><span class="badge info">Microsoft-Windows-Search</span></td><td class="text">Microsoft-Windows-Search</td><td class="text"></td><td>67</td></tr>
+    <tr><td>1023</td><td><span class="badge info">Microsoft-Windows-Perflib</span></td><td class="text">Microsoft-Windows-Perflib</td><td class="text"></td><td>2</td></tr>
+    <tr><td>1008</td><td><span class="badge info">Microsoft-Windows-Perflib</span></td><td class="text">Microsoft-Windows-Perflib</td><td class="text"></td><td>2</td></tr>
+    <tr><td>0</td><td><span class="badge info">SettingAssistantGuaurdService</span></td><td class="text">SettingAssistantGuaurdService</td><td class="text"></td><td>2</td></tr>
+    <tr><td>1000</td><td><span class="badge info">Application Error</span></td><td class="text">Application Error</td><td class="text"></td><td>14</td></tr>
+    <tr><td>86</td><td><span class="badge info">Microsoft-Windows-CertificateServicesClient-CertEnroll</span></td><td class="text">Microsoft-Windows-CertificateServicesClient-CertEnroll</td><td class="text"></td><td>2</td></tr>
+    <tr><td>63</td><td><span class="badge info">Microsoft-Windows-WMI</span></td><td class="text">Microsoft-Windows-WMI</td><td class="text"></td><td>6</td></tr>
+    <tr><td>21</td><td><span class="badge info">Microsoft-Windows-AppModel-State</span></td><td class="text">Microsoft-Windows-AppModel-State</td><td class="text"></td><td>2</td></tr>
+    <tr><td>20</td><td><span class="badge info">Microsoft-Windows-AppModel-State</span></td><td class="text">Microsoft-Windows-AppModel-State</td><td class="text"></td><td>2</td></tr>
+    <tr><td>24</td><td><span class="badge info">Microsoft-Windows-AppModel-State</span></td><td class="text">Microsoft-Windows-AppModel-State</td><td class="text"></td><td>2</td></tr>
+    <tr><td>23</td><td><span class="badge info">Microsoft-Windows-AppModel-State</span></td><td class="text">Microsoft-Windows-AppModel-State</td><td class="text"></td><td>2</td></tr>
+    <tr><td>1002</td><td><span class="badge info">Application Hang</span></td><td class="text">Application Hang</td><td class="text"></td><td>2</td></tr>
+    <tr><td>1015</td><td><span class="badge info">Microsoft-Windows-Search</span></td><td class="text">Microsoft-Windows-Search</td><td class="text"></td><td>2</td></tr>
+  </table>
+</div>
+<div class="section" id="sec-s10">
+  <h2><span class="num">十</span>Docker 与容器</h2>
+  <p style="font-size:13px;color:var(--c-muted);padding:8px 0">Docker 未安装或未运行</p>
+</div>
+<div class="section" id="sec-s11">
+  <h2><span class="num">十一</span>NPU 与 AI 推理</h2>
+  <h3>NPU 加速器</h3>
+  <table><tr><th>名称</th><th>状态</th></tr>
+    <tr><td class="text">USB Input Device</td><td><span class="badge ok">正常</span></td></tr>
+    <tr><td class="text">Microsoft Input Configuration Device</td><td><span class="badge ok">正常</span></td></tr>
+  </table>
+  <h3>AI 推理进程</h3>
+  <table><tr><th>进程名</th><th>PID</th><th>内存 (MB)</th></tr>
+    <tr><td class="text">pythoncv.exe</td><td>15052</td><td>30</td></tr>
+    <tr><td class="text">python.exe</td><td>41908</td><td>65</td></tr>
+    <tr><td class="text">python.exe</td><td>32900</td><td>18</td></tr>
+  </table>
+</div>
+<div class="section" id="sec-s12">
+  <h2><span class="num">十二</span>电源与散热</h2>
+  <h3>电池状态</h3>
+  <div class="info-grid">
+    <div class="info-item"><span class="key">剩余电量</span><span class="val">95%</span></div>
+    <div class="info-item"><span class="key">状态</span><span class="val">交流供电</span></div>
+  </div>
+  <p style="font-size:13px;color:var(--c-muted);padding:8px 0">温度数据不可用（需管理员权限或 OpenHardwareMonitor）</p>
+  <h3>风扇转速</h3>
+  <table><tr><th>风扇</th><th>转速</th></tr>
+    <tr><td class="text">Cooling Device</td><td> RPM</td></tr>
+  </table>
+  <h3>电源计划</h3>
+  <p style="font-size:13px;padding:8px 0">平衡</p>
+</div>
+<div class="section" id="sec-s13">
+  <h2><span class="num">十三</span>风险评估与建议</h2>
+  <p style="margin-bottom:10px">综合风险等级：<span class="risk-box high" style="font-size:16px;padding:4px 18px">高</span></p>
+  <h3>发现的问题</h3>
+  <div class="issue-list">
+    <div class="issue-item"><span class="level high">高</span><span class="desc">磁盘空间不足</span></div>
+  </div>
+</div>
+<div class="footer">巡检日期: 2026-06-06 &nbsp;<span class="sep">|</span>&nbsp; 主机: DESKTOP-6IU60QE &nbsp;<span class="sep">|</span>&nbsp; 生成时间: 20260606_122132</div>
+</div>
+<script>
+// 侧边栏滚动高亮
+(function() {
+  var links = document.querySelectorAll('.toc a');
+  var sections = [];
+  links.forEach(function(a) {
+    var id = a.getAttribute('href').substring(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({el: el, link: a});
+  });
+  function onScroll() {
+    var scrollY = window.scrollY + 100;
+    var active = null;
+    sections.forEach(function(s) {
+      if (s.el.offsetTop <= scrollY) active = s;
+    });
+    sections.forEach(function(s) {
+      s.link.classList.toggle('active', s === active);
+    });
+  }
+  window.addEventListener('scroll', onScroll, {passive: true});
+  onScroll();
+})();
+</script>
+</body>
+</html>
