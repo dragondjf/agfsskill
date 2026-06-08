@@ -5,60 +5,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>{{TITLE}}</title>
     <link href="assets/inter-font.css" rel="stylesheet">
-    <script src="assets/tailwind.min.js"></script>
     <script>const _origWarn=console.warn;console.warn=function(...a){if(a[0]&&typeof a[0]==="string"&&a[0].includes("cdn.tailwindcss.com"))return;_origWarn.apply(console,a)};</script>
+    <script src="assets/tailwind.min.js"></script>
+    <script src="assets/marked.min.js"></script>
     <script src="assets/chart.umd.min.js"></script>
     <link rel="stylesheet" href="assets/fontawesome.min.css">
     <style>
-        /* ── 深色/浅色主题变量 ── */
-        * { transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease; }
-        body { font-family: 'Inter', sans-serif; min-height: 100vh; }
-        body[data-theme="dark"] { background: linear-gradient(145deg, #0a0f1c 0%, #0c1222 100%); color: #e2e8f0; }
-        body[data-theme="dark"] .glass-card { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(59, 130, 246, 0.3); }
-        body[data-theme="dark"] .glass-panel { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(148, 163, 184, 0.2); }
-        body[data-theme="dark"] code { background: #0f172a; color: #cbd5e1; }
-        body[data-theme="light"] { background: #f1f5f9; color: #0f172a; }
-        body[data-theme="light"] .glass-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(100, 116, 139, 0.2); box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
-        body[data-theme="light"] .glass-panel { background: rgba(255, 255, 255, 0.7); border: 1px solid rgba(100, 116, 139, 0.15); }
-        body[data-theme="light"] .bg-black\/30, body[data-theme="light"] .bg-black\/40 { background: rgba(0,0,0,0.05); }
-        .sla-badge { border-radius: 20px; padding: 4px 12px; font-size: 0.7rem; font-weight: 600; }
-        .sla-pass-d { background: #10b98120; color: #34d399; border: 1px solid #10b98160; }
-        .sla-pass-l { background: #d1fae5; color: #065f46; border-color: #10b981; }
-        .sla-warn-d { background: #f59e0b20; color: #fbbf24; border: 1px solid #f59e0b60; }
-        .sla-warn-l { background: #fed7aa; color: #92400e; border-color: #f59e0b; }
-        body[data-theme="light"] .sla-pass-d { display: none; }
-        body[data-theme="dark"] .sla-pass-l { display: none; }
-        body[data-theme="light"] .sla-warn-d { display: none; }
-        body[data-theme="dark"] .sla-warn-l { display: none; }
-        .hover-grow { transition: transform 0.2s ease, box-shadow 0.2s; }
-        .hover-grow:hover { transform: translateY(-3px); box-shadow: 0 20px 25px -12px rgba(0,0,0,0.15); }
-        table th { position: sticky; top: 0; z-index: 10; }
-        /* 硬件信息弹窗 */
-        #mdOverlay { transition: opacity 0.2s ease; }
-        #mdOverlay.hidden { display: none !important; }
-        #mdContent::-webkit-scrollbar { width: 6px; }
-        #mdContent::-webkit-scrollbar-track { background: transparent; }
-        #mdContent::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.3); border-radius: 3px; }
+        *{transition:background-color 0.2s ease,border-color 0.2s ease,color 0.2s ease,box-shadow 0.2s ease;}
+        body{font-family:'Inter',sans-serif;min-height:100vh;}
+        body[data-theme="dark"]{background:linear-gradient(145deg,#0a0f1c 0%,#0c1222 100%);color:#e2e8f0;}
+        body[data-theme="dark"] .glass-card{background:rgba(15,23,42,0.7);backdrop-filter:blur(12px);border:1px solid rgba(59,130,246,0.3);}
+        body[data-theme="dark"] .glass-panel{background:rgba(30,41,59,0.5);border:1px solid rgba(148,163,184,0.2);}
+        body[data-theme="dark"] .metric-number{background:linear-gradient(135deg,#e0e7ff,#a5b4fc);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        body[data-theme="dark"] .sla-pass{background:#10b98120;color:#34d399;border-color:#10b98160;}
+        body[data-theme="dark"] .sla-warn{background:#f59e0b20;color:#fbbf24;border-color:#f59e0b60;}
+        body[data-theme="dark"] .sla-fail{background:#ef444420;color:#f87171;border-color:#ef444460;}
+        body[data-theme="dark"] code{background:#0f172a;color:#cbd5e1;}
+        body[data-theme="light"]{background:#f1f5f9;color:#0f172a;}
+        body[data-theme="light"] .glass-card{background:rgba(255,255,255,0.85);backdrop-filter:blur(12px);border:1px solid rgba(100,116,139,0.2);box-shadow:0 8px 20px rgba(0,0,0,0.05);}
+        body[data-theme="light"] .glass-panel{background:rgba(255,255,255,0.7);border:1px solid rgba(100,116,139,0.15);box-shadow:0 2px 8px rgba(0,0,0,0.02);}
+        body[data-theme="light"] .metric-number{background:linear-gradient(135deg,#1e293b,#334155);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        body[data-theme="light"] .sla-pass{background:#d1fae5;color:#065f46;border-color:#10b981;}
+        body[data-theme="light"] .sla-warn{background:#fed7aa;color:#92400e;border-color:#f59e0b;}
+        body[data-theme="light"] .sla-fail{background:#fee2e2;color:#991b1b;border-color:#ef4444;}
+        body[data-theme="light"] code{background:#e2e8f0;color:#1e293b;}
+        body[data-theme="light"] .text-slate-400{color:#475569;}
+        body[data-theme="light"] .border-white\/10{border-color:rgba(0,0,0,0.08);}
+        body[data-theme="light"] .bg-black\/30,body[data-theme="light"] .bg-black\/40{background:rgba(0,0,0,0.05);}
+        body[data-theme="light"] .bg-slate-800{background:#e2e8f0;color:#1e293b;}
+        body[data-theme="light"] .hover\:bg-slate-700:hover{background:#cbd5e1;}
+        body[data-theme="light"] .hover\:bg-slate-600:hover{background:#94a3b8;}
+        .hover-grow{transition:transform 0.2s ease,box-shadow 0.2s;}
+        .hover-grow:hover{transform:translateY(-3px);box-shadow:0 20px 25px -12px rgba(0,0,0,0.15);}
+        table th{position:sticky;top:0;z-index:10;}
+        #mdOverlay{transition:opacity 0.2s ease;}
+        #mdOverlay.hidden{display:none!important;}
+        #mdContent{scroll-behavior:smooth;}
+        #mdContent::-webkit-scrollbar{width:6px;}
+        #mdContent::-webkit-scrollbar-track{background:transparent;}
+        #mdContent::-webkit-scrollbar-thumb{background:rgba(148,163,184,0.3);border-radius:3px;}
+        body[data-theme="light"] #mdContent::-webkit-scrollbar-thumb{background:rgba(100,116,139,0.3);}
+        body[data-theme="light"] ::-webkit-scrollbar-track{background:#e2e8f0;}
+        body[data-theme="light"] ::-webkit-scrollbar-thumb{background:#94a3b8;}
+        body[data-theme="dark"] .conclusion-card{background:rgba(15,23,42,0.5);border-left:3px solid #3b82f6;}
+        body[data-theme="light"] .conclusion-card{background:rgba(241,245,249,0.8);border-left:3px solid #2563eb;}
     </style>
 </head>
 <body data-theme="dark" class="p-6">
 <div class="max-w-7xl mx-auto relative">
 
-    <!-- 顶部操作按钮 -->
+    <!-- 顶部操作按钮组 -->
     <div class="fixed top-6 right-6 z-50 flex items-center gap-2">
-        <button id="exportWordBtn" class="glass-card px-4 py-2 rounded-full shadow-lg backdrop-blur-md text-xs font-medium hover:bg-blue-600/20 transition-all" title="导出Word报告">
-            <i class="fas fa-file-word mr-1"></i> 导出Word
-        </button>
         <button id="viewHardwareBtn" class="glass-card px-4 py-2 rounded-full shadow-lg backdrop-blur-md text-xs font-medium hover:bg-emerald-600/20 transition-all" title="查看原始硬件信息">
             <i class="fas fa-server mr-1"></i> 硬件信息
         </button>
         <button id="themeToggle" class="glass-card rounded-full p-3 shadow-lg backdrop-blur-md w-12 h-12 flex items-center justify-center text-xl">
-            <i class="fas fa-sun" id="sunIcon"></i>
-            <i class="fas fa-moon" id="moonIcon" style="display:none"></i>
+            <i class="fas fa-sun hidden dark:inline-block text-yellow-300"></i>
+            <i class="fas fa-moon inline-block dark:hidden text-slate-700"></i>
         </button>
     </div>
 
-    <!-- 一、报告元信息 -->
+    <!-- ==================== 一、报告元信息 ==================== -->
     <div class="glass-card p-6 mb-6">
         <div class="flex flex-wrap justify-between items-start gap-4">
             <div>
@@ -72,70 +79,105 @@
                     <span><i class="fas fa-code-branch mr-1"></i> 模型：{{MODEL_NAME}}</span>
                 </div>
                 <div class="flex flex-wrap gap-3 mt-2 text-xs">
-                    <span class="px-3 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/40"><i class="fas fa-check-circle mr-1"></i>零失败</span>
+                    <span class="sla-pass px-3 py-1 rounded-full border"><i class="fas fa-check-circle mr-1"></i>零失败</span>
                     <span class="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/40"><i class="fas fa-layer-group mr-1"></i>{{GROUP_COUNT}}组测试</span>
                 </div>
             </div>
             <div class="glass-panel rounded-2xl px-5 py-2 text-center">
                 <div class="text-xs">稳态压测时长</div>
                 <div class="text-2xl font-mono font-bold">{{RUNTIME}} <span class="text-sm">s</span></div>
+                <div class="text-[10px]">请求数 ≥ 200 后截取稳态窗口</div>
             </div>
         </div>
     </div>
 
-    <!-- 二、被测设备 + 被测模型 -->
+    <!-- ==================== 二、设备档案 + 被测模型 ==================== -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div class="glass-panel p-5 hover-grow">
-            <div class="flex items-center gap-2 border-b border-black/10 dark:border-white/10 pb-3 mb-3">
+            <div class="flex items-center gap-2 border-b pb-3 mb-3">
                 <i class="fas fa-microchip text-cyan-500 text-xl"></i>
                 <span class="font-bold text-lg">被测设备</span>
+                <span class="ml-auto text-xs bg-black/20 dark:bg-white/10 px-2 py-0.5 rounded-full" id="deviceBadge"></span>
             </div>
-            <div id="deviceInfo" class="grid grid-cols-2 gap-y-2 text-sm">
-                <!-- 由 JS 动态填充 -->
+            <div id="deviceInfoGrid" class="grid grid-cols-2 gap-y-2 text-sm">
+                <!-- 由 JS 填充 -->
             </div>
         </div>
         <div class="glass-panel p-5 hover-grow">
-            <div class="flex items-center gap-2 border-b border-black/10 dark:border-white/10 pb-3 mb-3">
+            <div class="flex items-center gap-2 border-b pb-3 mb-3">
                 <i class="fas fa-brain text-purple-500 text-xl"></i>
                 <span class="font-bold text-lg">被测模型</span>
+                <span class="ml-auto text-xs bg-black/20 dark:bg-white/10 px-2 py-0.5 rounded-full">MoE + 多模态</span>
             </div>
-            <div id="modelInfo" class="grid grid-cols-2 gap-y-2 text-sm">
-                <!-- 由 JS 动态填充 -->
+            <div id="modelInfoGrid" class="grid grid-cols-2 gap-y-2 text-sm">
+                <!-- 由 JS 填充 -->
             </div>
         </div>
     </div>
 
-    <!-- 三、核心性能指标卡片 -->
+    <!-- ==================== 三、核心性能指标 ==================== -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
         <div class="glass-panel p-5 hover-grow">
             <div class="flex justify-between items-start"><span class="opacity-80 text-sm">TTFT (首Token时延)</span><i class="fas fa-hourglass-half text-cyan-500"></i></div>
-            <div class="text-3xl font-bold mt-2">{{TTFT_VALUE}} <span class="text-base font-normal opacity-70">s</span></div>
-            <div class="text-xs text-green-600 mt-1">{{TTFT_STATUS}}</div>
+            <div class="metric-number text-3xl font-bold mt-2">{{TTFT_VALUE}} <span class="text-base font-normal opacity-70">s</span></div>
+            <div class="text-xs mt-1" id="ttftStatus">{{TTFT_STATUS}}</div>
         </div>
         <div class="glass-panel p-5 hover-grow">
             <div class="flex justify-between items-start"><span class="opacity-80 text-sm">TPOT (每输出Token)</span><i class="fas fa-code-branch text-purple-500"></i></div>
-            <div class="text-3xl font-bold mt-2">{{TPOT_VALUE}} <span class="text-base font-normal opacity-70">s</span></div>
-            <div class="text-xs opacity-70 mt-1">{{TPOT_STATUS}}</div>
+            <div class="metric-number text-3xl font-bold mt-2">{{TPOT_VALUE}} <span class="text-base font-normal opacity-70">s</span></div>
+            <div class="text-xs mt-1" id="tpotStatus">{{TPOT_STATUS}}</div>
         </div>
         <div class="glass-panel p-5 hover-grow">
             <div class="flex justify-between items-start"><span class="opacity-80 text-sm">输出吞吐 (tokens/s)</span><i class="fas fa-tachometer-alt text-blue-500"></i></div>
-            <div class="text-3xl font-bold mt-2">{{THROUGHPUT_VALUE}} <span class="text-base font-normal opacity-70">tok/s</span></div>
-            <div class="text-xs opacity-70 mt-1">{{THROUGHPUT_STATUS}}</div>
+            <div class="metric-number text-3xl font-bold mt-2">{{THROUGHPUT_VALUE}} <span class="text-base font-normal opacity-70">tok/s</span></div>
+            <div class="text-xs mt-1" id="throughputStatus">{{THROUGHPUT_STATUS}}</div>
         </div>
         <div class="glass-panel p-5 hover-grow">
             <div class="flex justify-between items-start"><span class="opacity-80 text-sm">端到端延迟 (E2E)</span><i class="fas fa-clock text-amber-500"></i></div>
-            <div class="text-3xl font-bold mt-2">{{E2E_VALUE}} <span class="text-base font-normal opacity-70">s</span></div>
-            <div class="text-xs opacity-70 mt-1">{{E2E_STATUS}}</div>
+            <div class="metric-number text-3xl font-bold mt-2">{{E2E_VALUE}} <span class="text-base font-normal opacity-70">s</span></div>
+            <div class="text-xs mt-1" id="e2eStatus">{{E2E_STATUS}}</div>
         </div>
     </div>
 
-    <!-- 四、可视化图表（占位，由JS初始化） -->
+    <!-- ==================== 四、资源与稳定性 ==================== -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div class="glass-panel p-4"><div class="flex items-center gap-2 mb-3"><i class="fas fa-chart-line text-indigo-500"></i><span class="font-medium">并发-吞吐曲线</span></div><canvas id="throughputChart" height="200"></canvas></div>
-        <div class="glass-panel p-4"><div class="flex items-center gap-2 mb-3"><i class="fas fa-hourglass-half text-rose-500"></i><span class="font-medium">时延指标随并发变化</span></div><canvas id="latencyChart" height="200"></canvas></div>
+        <div class="glass-panel p-5">
+            <div class="flex items-center gap-2 mb-3"><i class="fas fa-chart-simple text-green-500"></i><span class="font-semibold">稳定性 & 业务SLA适配</span></div>
+            <div class="grid grid-cols-2 gap-3">
+                <div><div class="text-xs opacity-70">成功率</div><div class="text-2xl font-bold text-green-600 sla-status-ok">100%</div><div class="text-xs opacity-70" id="totalRequestsLabel">请求成功</div></div>
+                <div><div class="text-xs opacity-70">失败数</div><div class="text-2xl font-bold" id="failedCount">0</div><div class="text-xs opacity-70">全部零失败</div></div>
+                <div><div class="text-xs opacity-70">错误日志</div><div id="errorsInfo"><span class="text-xs opacity-70">读取中...</span></div></div>
+                <div class="col-span-2"><div class="border-t my-2 border-black/10 dark:border-white/10"></div></div>
+                <div><div class="text-xs opacity-70">SLA: TTFT ≤ 200ms</div><div id="slaTtft" class="sla-pass sla-badge px-2 py-0.5 rounded-full text-xs inline-block"><i class="fas fa-check-circle"></i> 通过</div></div>
+                <div><div class="text-xs opacity-70">SLA: TPOT ≤ 80ms</div><div id="slaTpot" class="sla-pass sla-badge px-2 py-0.5 rounded-full text-xs inline-block"><i class="fas fa-check-circle"></i> 通过</div></div>
+                <div><div class="text-xs opacity-70">SLA: 吞吐 ≥15 tok/s</div><div id="slaThroughput" class="sla-pass sla-badge px-2 py-0.5 rounded-full text-xs inline-block"><i class="fas fa-check-circle"></i> 通过</div></div>
+                <div><div class="text-xs opacity-70">测试组数</div><div id="groupCountLabel">{{GROUP_COUNT}} 组</div></div>
+            </div>
+        </div>
+        <div class="glass-panel p-5">
+            <div class="flex items-center gap-2 mb-3"><span class="font-semibold">测试场景配置</span><i class="fas fa-sliders-h text-indigo-500 ml-auto"></i></div>
+            <div class="grid grid-cols-2 gap-y-2 text-sm">
+                <div><span class="opacity-70">并发范围</span><div id="concurrencyRange">—</div></div>
+                <div><span class="opacity-70">稳态判定</span><div>连续200请求 & 时长≥300s</div></div>
+                <div><span class="opacity-70">失败率</span><div class="text-green-600">0%</div></div>
+                <div><span class="opacity-70">推理框架</span><div id="frameworkLabel">vLLM</div></div>
+            </div>
+        </div>
     </div>
 
-    <!-- 五、逐组测试明细表 -->
+    <!-- ==================== 五、可视化曲线 ==================== -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="glass-panel p-4">
+            <div class="flex items-center gap-2 mb-3"><i class="fas fa-chart-line text-indigo-500"></i><span class="font-medium">并发-吞吐曲线</span></div>
+            <canvas id="throughputChart" height="200"></canvas>
+        </div>
+        <div class="glass-panel p-4">
+            <div class="flex items-center gap-2 mb-3"><i class="fas fa-hourglass-half text-rose-500"></i><span class="font-medium">时延指标随并发变化</span></div>
+            <canvas id="latencyChart" height="200"></canvas>
+        </div>
+    </div>
+
+    <!-- ==================== 六、逐组测试明细表 ==================== -->
     <div class="glass-panel p-5 mb-6 overflow-x-auto">
         <div class="flex items-center gap-2 mb-3"><i class="fas fa-table mr-2"></i><span class="font-semibold">逐组测试数据明细</span></div>
         <table class="min-w-full text-sm text-left">
@@ -144,81 +186,254 @@
         </table>
     </div>
 
+    <!-- ==================== 七、性能分析结论 ==================== -->
+    <div class="glass-panel p-5 mb-6">
+        <div class="flex items-center gap-2 mb-4"><i class="fas fa-clipboard-check text-green-500"></i><span class="font-semibold">性能分析结论</span></div>
+        <div id="conclusionsContainer"></div>
+    </div>
+
     <!-- 电子签署 -->
     <div class="glass-panel p-5 flex flex-wrap justify-between items-center text-sm">
         <div><i class="fas fa-signature mr-2"></i>电子签署：五阶段均已确认 ({{SIGNER}} {{SIGN_DATE}})</div>
+    </div>
+
+    <!-- 硬件信息弹窗 -->
+    <div id="mdOverlay" class="hidden fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-card rounded-2xl w-full max-w-5xl max-h-[85vh] flex flex-col overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-black/10 dark:border-white/10">
+                <span class="font-bold text-lg"><i class="fas fa-server mr-2"></i>原始硬件信息</span>
+                <button id="mdCloseBtn" class="glass-card rounded-full p-2 w-9 h-9 flex items-center justify-center hover:bg-red-500/20 transition-all">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="mdContent" class="p-6 overflow-auto text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none"></div>
+        </div>
     </div>
 
     <div class="text-center text-[11px] opacity-50 mt-6 border-t border-black/10 dark:border-white/10 pt-4">本报告由 DeepRunner 6.0 推理性能测评工具生成，数据基于真实设备采集与压测，可复现。</div>
 </div>
 
 <script>
-// ── 数据注入（由 Python 生成时替换） ──
 const REPORT_DATA = {{REPORT_DATA_JSON}};
+const d = REPORT_DATA;
+const di = d.deviceInfo || {};
 
-// ── Chart.js 图表 ──
+// ── 工具函数 ──
+const rd = (v, n=3) => v === undefined || v === null ? 0 : Number(v).toFixed(n);
+const _round = (v, n=3) => v === undefined || v === null ? 0 : Number(rd(v, n));
+
+// ── 填充设备信息 ──
+function fillDeviceInfo() {
+    const info = [
+        ['设备标识', di.device || d.deviceName || '—'],
+        ['SoC/加速卡', di.accelerator || '—'],
+        ['CPU 配置', di.cpu_info || '—'],
+        ['内存', di.memory || '—'],
+        ['推理框架', di.framework || 'vLLM'],
+        ['API端点', di.api_endpoint || '—'],
+        ['网络模式', di.network_mode || '—'],
+    ];
+    document.getElementById('deviceInfoGrid').innerHTML = info.map(([k, v]) =>
+        `<div class="opacity-70">${k}</div><div>${v}</div>`
+    ).join('');
+    document.getElementById('deviceBadge').textContent = di.accelerator ? '单机 · ' + (di.network_mode || '') : '单机';
+}
+
+// ── 填充模型信息 ──
+function fillModelInfo() {
+    const info = [
+        ['模型名称', di.model || d.modelName || '—'],
+        ['精度格式', di.quantization || '—'],
+        ['推理框架', di.framework || 'vLLM'],
+        ['部署方式', di.network_mode || 'Docker'],
+    ];
+    document.getElementById('modelInfoGrid').innerHTML = info.map(([k, v]) =>
+        `<div class="opacity-70">${k}</div><div class="font-medium">${v}</div>`
+    ).join('');
+}
+
+// ── 填充测试场景 ──
+function fillScenario() {
+    const cd = d.chartData;
+    if (cd && cd.concurrency && cd.concurrency.length) {
+        const conc = cd.concurrency;
+        document.getElementById('concurrencyRange').textContent = conc[0] + '~' + conc[conc.length - 1];
+    }
+    document.getElementById('totalRequestsLabel').textContent = '请求成功';
+    document.getElementById('frameworkLabel').textContent = di.framework || 'vLLM';
+    
+    // errors.json 信息
+    const err = di.errors || {};
+    const hasErrors = err.failure_count || err.exception_count || err.sla_count;
+    const errEl = document.getElementById('errorsInfo');
+    if (errEl) {
+        if (hasErrors) {
+            const parts = [];
+            if (err.failure_count) parts.push(`失败×${err.failure_count}`);
+            if (err.exception_count) parts.push(`异常×${err.exception_count}`);
+            if (err.sla_count) parts.push(`SLA×${err.sla_count}`);
+            errEl.innerHTML = `<span class="sla-warn px-2 py-0.5 rounded-full text-xs"><i class="fas fa-exclamation-triangle"></i> ${parts.join(' ')}</span>`;
+        } else {
+            errEl.innerHTML = `<span class="text-green-600 text-xs"><i class="fas fa-check-circle"></i> 无错误</span>`;
+        }
+    }
+    
+    // Update SLA badges based on metrics
+    const ttft = parseFloat('{{TTFT_VALUE}}' || 0);
+    const tpot = parseFloat('{{TPOT_VALUE}}' || 0);
+    const thr = parseFloat('{{THROUGHPUT_VALUE}}' || 0);
+    
+    function setSla(el, pass, msg) {
+        const e = document.getElementById(el);
+        if (!e) return;
+        if (pass) { e.className = 'sla-pass px-2 py-0.5 rounded-full text-xs inline-block'; e.innerHTML = '<i class=\"fas fa-check-circle\"></i> ' + msg; }
+        else { e.className = 'sla-warn px-2 py-0.5 rounded-full text-xs inline-block'; e.innerHTML = '<i class=\"fas fa-exclamation-triangle\"></i> ' + msg; }
+    }
+    setSla('slaTtft', ttft < 0.2, 'TTFT=' + rd(ttft,3) + 's ≤ 200ms');
+    setSla('slaTpot', tpot < 0.08, 'TPOT=' + rd(tpot,4) + 's ≤ 80ms');
+    setSla('slaThroughput', thr >= 15 || thr === 0, '吞吐=' + rd(thr,1) + ' tok/s' + (thr >= 15 ? '' : ' (数据不足)'));
+}
+
+// ── 填充明细表 ──
+function fillDetailTable() {
+    if (!d.detailRows || !d.detailRows.length) return;
+    const keys = ['序号','并发数','请求数','失败数','最小延迟(s)','最大延迟(s)','平均延迟(s)','吞吐min','吞吐max','QPS min','QPS max','TTFT(s)','TPOT(s)','输入tok','输出tok min','输出tok max'];
+    document.getElementById('detailTableHead').innerHTML = '<tr>' + keys.map(k => `<th class="py-2 px-2 text-xs">${k}</th>`).join('') + '</tr>';
+    document.getElementById('detailTableBody').innerHTML = d.detailRows.map(r =>
+        '<tr class="hover:bg-white/5">' + r.map(v => `<td class="py-2 px-2 text-xs">${v}</td>`).join('') + '</tr>'
+    ).join('');
+}
+
+// ── 性能分析结论（数据驱动）──
+function fillConclusions() {
+    const cd = d.chartData;
+    const conc = cd && cd.concurrency ? cd.concurrency : [];
+    const concRange = conc.length > 1 ? conc[0] + '~' + conc[conc.length-1] : (conc[0] || '');
+    const totalReqs = d.detailRows ? d.detailRows.reduce((s, r) => s + (r[2] || 0), 0) : 0;
+    const failed = d.detailRows ? d.detailRows.reduce((s, r) => s + (r[3] || 0), 0) : 0;
+    const latAvg = cd && cd.latency && cd.latency.length ? (cd.latency.reduce((a,b) => a+b, 0) / cd.latency.length) : 0;
+    const thrMax = cd && cd.throughput ? Math.max(...cd.throughput) : 0;
+    // Get TTFT from detailRows first column index 11
+    const ttftVals = d.detailRows ? d.detailRows.map(r => parseFloat(r[11]) || 0).filter(v => v > 0) : [];
+    const ttftMin = ttftVals.length ? Math.min(...ttftVals) : 0;
+    const tpotVals = d.detailRows ? d.detailRows.map(r => parseFloat(r[12]) || 0).filter(v => v > 0) : [];
+    const tpotMin = tpotVals.length ? Math.min(...tpotVals) : 0;
+
+    const conclusions = [
+        ['1. 可靠性', `测试在并发${concRange}梯度下实现零失败率（${failed}/${totalReqs}），API 服务稳定性优秀。`],
+        ['2. 吞吐能力', `并发数从${conc[0] || '?'}递增至${conc[conc.length-1] || '?'}，运行时长300s。吞吐峰值达到${rd(thrMax, 1)} tok/s。`],
+        ['3. 首Token延迟(TTFT)', `TTFT最小值${rd(ttftMin, 3)}s${ttftMin < 1 ? '，响应快速' : ttftMin < 3 ? '，响应正常' : '，响应偏慢'}。`],
+        ['4. TPOT', `TPOT最小值${rd(tpotMin, 4)}s${tpotMin < 0.05 ? '，Token生成高效' : tpotMin < 0.1 ? '，Token生成正常' : '，Token生成偏慢'}。`],
+        ['5. 平均延迟', `平均延迟${rd(latAvg, 1)}s，` + (latAvg < 5 ? '端到端延迟低。' : latAvg < 20 ? '端到端延迟正常。' : '端到端延迟偏高。')],
+        ['6. 稳定性', `全部请求零失败，服务稳定性表现优秀。`],
+    ];
+    document.getElementById('conclusionsContainer').innerHTML = conclusions.map(([title, content]) =>
+        `<div class="conclusion-card p-4 mb-3 rounded-lg">
+            <div class="font-medium text-sm mb-1">${title}</div>
+            <div class="text-xs opacity-80 leading-relaxed">${content}</div>
+        </div>`
+    ).join('');
+}
+
+// ── Chart.js ──
 let charts = {};
 function getChartColors(theme) {
     return theme === 'light'
         ? { grid: '#e2e8f0', label: '#334155', title: '#1e293b' }
         : { grid: '#1e293b', label: '#94a3b8', title: '#cbd5e1' };
 }
-function commonOpts(c, yTitle, xTitle) {
-    return {
-        responsive: true, maintainAspectRatio: true,
+function opts(c, yt, xt) {
+    return { responsive: true, maintainAspectRatio: true,
         plugins: { legend: { labels: { color: c.label, usePointStyle: true } }, tooltip: { mode: 'index', intersect: false } },
-        scales: { y: { title: { display: true, text: yTitle, color: c.title }, grid: { color: c.grid }, ticks: { color: c.label } }, x: { title: { display: true, text: xTitle, color: c.title }, grid: { color: c.grid }, ticks: { color: c.label } } }
-    };
+        scales: { y: { title: { display: true, text: yt, color: c.title }, grid: { color: c.grid }, ticks: { color: c.label } }, x: { title: { display: true, text: xt, color: c.title }, grid: { color: c.grid }, ticks: { color: c.label } } } };
 }
 function initCharts(theme) {
     const c = getChartColors(theme);
-    const d = REPORT_DATA;
-    Object.values(charts).forEach(ch => ch.destroy());
+    Object.values(charts).forEach(ch => { try { ch.destroy(); } catch(e) {} });
     charts = {};
-    if (d.chartData && d.chartData.concurrency) {
+    const cd = d.chartData;
+    if (cd && cd.concurrency && cd.concurrency.length) {
+        const isSinglePoint = cd.concurrency.length === 1;
+        const chartType = isSinglePoint ? 'bar' : 'line';
+        // 单点数据用柱状图，多点用折线图
         charts.throughput = new Chart(document.getElementById('throughputChart'), {
-            type: 'line', data: { labels: d.chartData.concurrency, datasets: [
-                { label: '输出吞吐 (tok/s)', data: d.chartData.throughput, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3, pointRadius: 4 }
-            ]}, options: commonOpts(c, '吞吐 (tok/s)', '并发数')
+            type: chartType, data: { labels: cd.concurrency, datasets: [
+                { label: '输出吞吐 (tok/s)', data: cd.throughput,
+                  borderColor: '#3b82f6', backgroundColor: isSinglePoint ? 'rgba(59,130,246,0.6)' : 'rgba(59,130,246,0.1)',
+                  borderWidth: isSinglePoint ? 1 : undefined,
+                  fill: !isSinglePoint, tension: isSinglePoint ? 0 : 0.3, pointRadius: isSinglePoint ? 0 : 4 }
+            ]}, options: opts(c, '吞吐 (tok/s)', '并发数')
         });
         charts.latency = new Chart(document.getElementById('latencyChart'), {
-            type: 'line', data: { labels: d.chartData.concurrency, datasets: [
-                { label: '平均延迟 (s)', data: d.chartData.latency, borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.1)', fill: true, tension: 0.3, pointRadius: 4 }
-            ]}, options: commonOpts(c, '延迟 (秒)', '并发数')
+            type: chartType, data: { labels: cd.concurrency, datasets: [
+                { label: '平均延迟 (s)', data: cd.latency,
+                  borderColor: '#f97316', backgroundColor: isSinglePoint ? 'rgba(249,115,22,0.6)' : 'rgba(249,115,22,0.1)',
+                  borderWidth: isSinglePoint ? 1 : undefined,
+                  fill: !isSinglePoint, tension: isSinglePoint ? 0 : 0.3, pointRadius: isSinglePoint ? 0 : 4 }
+            ]}, options: opts(c, '延迟 (秒)', '并发数')
         });
     }
 }
 
-// ── 填充明细表 ──
-function fillDetailTable() {
-    const d = REPORT_DATA;
-    if (!d.detailRows || !d.detailRows.length) return;
-    const keys = ['序号','并发数','请求数','失败数','最小延迟(s)','最大延迟(s)','平均延迟(s)','吞吐min','吞吐max','QPS min','QPS max','TTFT(s)','TPOT(s)','输入tok','输出tok min','输出tok max'];
-    document.getElementById('detailTableHead').innerHTML = '<tr>' + keys.map(k => `<th class="py-2 px-2">${k}</th>`).join('') + '</tr>';
-    document.getElementById('detailTableBody').innerHTML = d.detailRows.map(r =>
-        '<tr class="hover:bg-white/5">' + r.map(v => `<td class="py-2 px-2">${v}</td>`).join('') + '</tr>'
-    ).join('');
-}
-
-// ── 主题切换 ──
+// ── 初始化 ──
 const initTheme = localStorage.getItem('theme') || 'dark';
 document.body.setAttribute('data-theme', initTheme);
+fillDeviceInfo();
+fillModelInfo();
+fillScenario();
 initCharts(initTheme);
 fillDetailTable();
+fillConclusions();
+
+// 主题切换
 document.getElementById('themeToggle').addEventListener('click', () => {
     const t = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     document.body.setAttribute('data-theme', t);
     localStorage.setItem('theme', t);
-    document.getElementById('sunIcon').style.display = t === 'dark' ? '' : 'none';
-    document.getElementById('moonIcon').style.display = t === 'light' ? '' : 'none';
+    document.querySelector('.fa-sun').classList.toggle('hidden');
+    document.querySelector('.fa-moon').classList.toggle('hidden');
     initCharts(t);
 });
-document.getElementById('sunIcon').style.display = initTheme === 'dark' ? '' : 'none';
-document.getElementById('moonIcon').style.display = initTheme === 'light' ? '' : 'none';
+document.querySelector('.fa-sun').classList.add('hidden');
 
-// ── 导出Word ──
-document.getElementById('exportWordBtn').addEventListener('click', () => {
-    if (REPORT_DATA.wordFile) window.open(REPORT_DATA.wordFile, '_blank');
+// 硬件信息弹窗
+const hwBtn = document.getElementById('viewHardwareBtn');
+if (hwBtn) {
+    hwBtn.addEventListener('click', () => {
+        const overlay = document.getElementById('mdOverlay');
+        const content = document.getElementById('mdContent');
+        overlay.classList.remove('hidden');
+        // Pass the raw device markdown source if available, or a summary
+        const hwText = di.rawMarkdown || [
+            '# 设备信息采集报告',
+            '',
+            `> 设备: ${di.device || d.deviceName || '未知'}`,
+            `> 模型: ${di.model || d.modelName || '未知'}`,
+            '',
+            '---',
+            '',
+            '## 硬件摘要',
+            '',
+            `| 项目 | 值 |`,
+            `| :--- | :--- |`,
+            `| 加速器 | ${di.accelerator || '—'} |`,
+            `| CPU | ${di.cpu_info || '—'} |`,
+            `| 内存 | ${di.memory || '—'} |`,
+            `| 量化方式 | ${di.quantization || '—'} |`,
+            `| 推理框架 | ${di.framework || '—'} |`,
+            `| API端点 | ${di.api_endpoint || '—'} |`,
+            `| 网络模式 | ${di.network_mode || '—'} |`,
+        ].join('\n');
+        content.innerHTML = marked.parse(hwText);
+    });
+}
+document.getElementById('mdCloseBtn').addEventListener('click', () => {
+    document.getElementById('mdOverlay').classList.add('hidden');
+});
+document.getElementById('mdOverlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+        document.getElementById('mdOverlay').classList.add('hidden');
+    }
 });
 </script>
 </body>

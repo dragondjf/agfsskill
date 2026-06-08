@@ -1,135 +1,335 @@
 ---
 name: deeprunner-report
-description: 从 DeepRunner 6.0 压测工具的原始输出数据（stats.json + 测试脚本）自动生成可视化测评报告和比对报告。支持 Excel（openpyxl）和 HTML（glass-card 深色/浅色双主题 + Chart.js 图表）两种输出格式。当用户要求"生成测评报告""生成比对报告""测试报告转HTML""stats.json生成报告""压测数据可视化""推理性能报告""生成Excel报告"等涉及 DeepRunner / GUIRunner 压测结果报告生成时触发。
+description: 从 DeepRunner 6.0 压测结果（stats.json + 测试脚本）自动生成单设备/比对测评报告，支持 HTML 和 Excel 双格式。逐并发报告 + 汇总报告 + 设备信息自动检测。
 ---
 
 # DeepRunner 6.0 报告生成技能
 
-## 工作流总览
+## 目录结构
 
 ```
-输入数据 → 数据提取 → 分析计算 → 报告生成（Excel / HTML）
+deeprunner-report/
+├── SKILL.md                       ← 本文件
+├── scripts/
+│   └── generate_report.py         ← 主程序（1200+行）
+├── assets/                        ← HTML 静态资源
+│   ├── single-report-template.html   单设备 HTML 模板
+│   ├── compare-report-template.html  比对 HTML 模板
+│   ├── tailwind.min.js
+│   ├── chart.umd.min.js
+│   ├── marked.min.js
+│   ├── inter-font.css
+│   ├── fontawesome.min.css
+│   └── webfonts/
+└── references/
+    ├── data-schema.md
+    └── html-style-guide.md
 ```
 
-## 输入数据
+---
 
-必需文件（每个测试组目录）：
-- `stats.json` — 核心性能数据（延迟/吞吐/QPS/TTFT/TPOT/Token数）
-- `test*.py` — 测试脚本（正则提取并发数）
+## 输入数据规范
 
-可选文件：
-- `apirunner.json` — 测试配置（API端点、模型名、运行时长）
-- 硬件信息 `.md` — 设备详情
-- 模型信息 `.md` — 模型参数
+### 测试报告目录结构（必需）
 
-数据 schema 详见 [references/data-schema.md](references/data-schema.md)。
-
-## 两种报告模式
-
-### 模式一：单设备测评报告
-
-从一组测试（1~N组）生成单个设备的完整测评报告。
-
-**数据扫描**：扫描包含 `stats.json` 的子目录，按并发数排序。
-
-```python
-from scripts.generate_report import scan_test_groups, generate_single_excel
-groups = scan_test_groups(r'path/to/HTML报告')
-generate_single_excel(groups, device_name='GB10', model_name='Qwen3.6-35B', output_path='output.xlsx')
+```
+测试报告/
+├── device-info-*.md               ← [可选] 设备信息文件（自动检测）
+├── 公司测试/                      ← 设备A
+│   └── HTML报告/
+│       ├── webrunner_xxx_1/       ← 每组并发一个目录
+│       │   ├── stats.json         ★ 必需：核心压测数据
+│       │   └── test_xxx.py        ★ 必需：测试脚本（含 '用户数': N）
+│       ├── webrunner_xxx_2/
+│       └── ...
+└── 远程测试/                      ← 设备B
+    └── HTML报告/
+        ├── webrunner_yyy_1/
+        └── ...
 ```
 
-**HTML 报告生成**：
+### stats.json 格式
 
-1. 读取模板 `assets/single-report-template.html`
-2. 用 `REPORT_DATA_JSON` 变量注入数据（json.dumps）
-3. 替换 `{{PLACEHOLDER}}` 占位符
-4. 图表使用 Chart.js 初始化（并发-吞吐曲线、延迟曲线）
+JSON 数组，每个元素是一个命名指标条目：
 
-### 模式二：双设备比对报告
-
-从两组测试（各1~N组）生成对比分析报告。
-
-```python
-from scripts.generate_report import scan_test_groups, generate_compare_excel
-groups_a = scan_test_groups(r'path/to/公司测试/HTML报告')
-groups_b = scan_test_groups(r'path/to/远程测试/HTML报告')
-generate_compare_excel(groups_a, groups_b, 'NVIDIA GB10', '昇腾 910B4',
-                        model_a='Qwen3.6-35B-A3B-FP8', model_b='qwen3.5-a3b',
-                        output_path='output.xlsx')
+```json
+[
+  {
+    "name": "Throughput (tokens/s)[吞吐量]",
+    "num_requests": 12,
+    "num_failures": 0,
+    "min_response_time": 7.86,
+    "max_response_time": 54.63,
+    "total_response_time": 335.9
+  },
+  {
+    "name": "TTFT (s)[Time to First Token]",
+    "min_response_time": 0.074,
+    "max_response_time": 0.127
+  },
+  ...
+]
 ```
 
-**HTML 比对报告生成**：
+字段名支持中文/英文双匹配（如 `'平均延迟'` 和 `'Average latency'`）。
 
-1. 读取模板 `assets/compare-report-template.html`
-2. 数据通过 `REPORT_DATA_JSON` 注入
-3. 包含 6 张 Chart.js 对比图表 + Tab 切换明细表 + 结论卡片
+### device-*.md 格式（可选，用于自动检测）
 
-## 报告内容结构
+```markdown
+# 设备信息采集报告
+> 主机名: thinkstationpgx-321e
 
-### Excel 报告（7 个 Sheet）
+## 一、系统概览
+| 项目 | 值 |
+| :--- | :--- |
+| 厂商/SoC | NVIDIA GB10 |
+| 架构 | aarch64 |
+
+## CPU
+型号名称： Cortex-X925
+CPU 大小核拓扑表...
+
+## NPU / GPU
+npu-smi / nvidia-smi 输出...
+
+## 内存
+Mem: 119Gi total, 104Gi used...
+
+## 推理服务 — vLLM
+Docker 容器 + 启动参数 + /v1/models
+```
+
+支持自动提取9个字段：设备名、模型名、加速器、CPU、内存、量化方式、推理框架、API端点、网络模式。
+
+---
+
+## 安装依赖
+
+```bash
+pip install openpyxl
+```
+
+---
+
+## CLI 用法
+
+### 单设备报告（逐并发 + 汇总）
+
+默认生成 10份逐并发 + 1份汇总：
+
+```bash
+# HTML + Excel 一起生成
+python generate_report.py --mode single --stats-dir <目录> --output-dir <输出目录>
+
+# 仅 HTML
+python generate_report.py --mode single-html --stats-dir <目录> --output-dir <输出目录>
+```
+
+设备/模型名自动检测（从 `device-*.md`），也可手动指定：
+
+```bash
+python generate_report.py --mode single-html --stats-dir <目录> --output-dir <输出目录>\\
+    --device "NVIDIA GB10" --model "Qwen3.6-35B-A3B-FP8"
+```
+
+仅汇总报告（关闭逐并发）：
+
+```bash
+python generate_report.py --mode single-html --stats-dir <目录> --output-dir <输出目录> --no-per-concurrency
+```
+
+### 双设备比对报告
+
+```bash
+# HTML + Excel 同时生成
+python generate_report.py --mode compare \\
+    --stats-dir-a <设备A目录> --stats-dir-b <设备B目录> --output-dir <输出目录>
+
+# 仅 HTML
+python generate_report.py --mode compare-html \\
+    --stats-dir-a <设备A目录> --stats-dir-b <设备B目录> --output-dir <输出目录>
+```
+
+手动指定名称（覆盖自动检测）：
+
+```bash
+python generate_report.py --mode compare-html \\
+    --stats-dir-a "公司测试/HTML报告" --stats-dir-b "远程测试/HTML报告" \\
+    --output-dir "输出目录" \\
+    --device-a "NVIDIA_GB10" --device-b "Ascend_910B4" \\
+    --name-a "NVIDIA GB10" --name-b "昇腾 910B4" \\
+    --model-a "Qwen3.6-35B-A3B-FP8" --model-b "qwen3.5-a3b"
+```
+
+### 完整参数列表
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `--mode` | 必选 | — | `single` / `single-html` / `compare` / `compare-html` / `batch` / **`discover`** |
+| `--root-dir` | 路径 | — | **discover 模式**：根目录，自动扫描发现所有设备并生成全部报告 |
+| `--stats-dir` | 路径 | — | 单设备模式：测试数据目录 |
+| `--stats-dir-a` | 路径 | — | 比对模式：设备A目录 |
+| `--stats-dir-b` | 路径 | — | 比对模式：设备B目录 |
+| `--output-dir` | 路径 | 必选 | 输出目录 |
+| `--device` | 字符串 | 自动检测 | 单设备：设备名 |
+| `--device-a` | 字符串 | 自动检测 | 比对：设备A名（用于文件名） |
+| `--device-b` | 字符串 | 自动检测 | 比对：设备B名（用于文件名） |
+| `--name-a` | 字符串 | 自动检测 | 比对：设备A显示名 |
+| `--name-b` | 字符串 | 自动检测 | 比对：设备B显示名 |
+| `--model` | 字符串 | 自动检测 | 单设备：模型名 |
+| `--model-a` | 字符串 | 自动检测 | 比对：模型A名 |
+| `--model-b` | 字符串 | 自动检测 | 比对：模型B名 |
+| `--per-concurrency` | 开关 | True | 开启逐并发生成 |
+| `--no-per-concurrency` | 开关 | False | 关闭逐并发生成，仅汇总 |
+
+---
+
+## 输出文件结构
+
+以 `--output-dir ./output/` 为例：
+
+```
+output/
+├── assets/                       ← HTML 静态资源（自动复制）
+│
+├── deeprunner_NVIDIA_GB10_并发1.html   ← 逐并发单设备HTML
+├── deeprunner_NVIDIA_GB10_并发2.html
+├── ...
+├── deeprunner_NVIDIA_GB10_并发10.html
+├── DeepRunner_NVIDIA_GB10_并发1.xlsx   ← 逐并发单设备Excel
+├── ...
+├── DeepRunner_NVIDIA_GB10_并发10.xlsx
+├── deeprunner_NVIDIA_GB10测评报告.html  ← 汇总HTML（折线图）
+├── DeepRunner_推理性能测试报告_NVIDIA_GB10.xlsx  ← 汇总Excel（7 Sheets）
+│
+├── deeprunner_Ascend_910B4_并发1.html
+├── ...
+├── deeprunner_Ascend_910B4测评报告.html
+├── DeepRunner_推理性能测试报告_Ascend_910B4.xlsx
+│
+├── deeprunner_比对_NVIDIA_GB10_vs_Ascend_910B4_并发1.html  ← 逐并发比对HTML
+├── ...
+├── deeprunner_比对_NVIDIA_GB10_vs_Ascend_910B4_并发10.html
+├── DeepRunner_比对_NVIDIA_GB10_vs_Ascend_910B4_并发1.xlsx
+├── ...
+├── DeepRunner_比对_NVIDIA_GB10_vs_Ascend_910B4_并发10.xlsx
+├── deeprunner_推理性能比对报告_NVIDIA_GB10_vs_Ascend_910B4.html  ← 汇总比对HTML
+└── DeepRunner_推理性能比对报告_NVIDIA_GB10_vs_Ascend_910B4.xlsx  ← 汇总比对Excel
+```
+
+---
+
+## 报告内容
+
+### 单设备 Excel（7 Sheets）
 
 | Sheet | 内容 |
-|-------|------|
-| 测试概览 | 设备/模型/配置基本信息 |
-| 逐组对比明细 | 20行（A10+B10），16列性能指标 |
-| 汇总统计 | 核心指标汇总 + 对比结论 |
-| 自定义指标明细 | 从 stats.json 提取的所有自定义指标 |
-| 测试环境配置 | API端点/模型/并发/数据源 |
-| 性能分析结论 | 9条分析结论 |
-| 图表分析 | 图表源数据（10行×12列） |
+|---|---|
+| 测试概览 | 设备信息 + 并发/请求/失败统计 |
+| 逐组测试明细 | 16列性能指标（延迟/吞吐/QPS/TTFT/TPOT/Token） |
+| 汇总统计 | 10行核心指标聚合 |
+| 自定义指标明细 | stats.json 所有原始指标 |
+| 测试环境配置 | API端点/模型/并发/负载机IP/数据源 |
+| 性能分析结论 | 7条自动生成结论（基于实际数据） |
+| 图表分析 | 图表源数据 |
 
-### HTML 报告板块
+### 单设备 HTML（7区块）
 
-- 报告元信息 + 设备/模型卡片 + 核心指标卡片 + Chart.js 图表 + 明细表 + 结论 + 签署
+1. **报告元信息** — 设备名、模型、日期、组数、稳态时长
+2. **设备档案** — 加速器/CPU/内存/框架/API/网络模式（从 device-*.md 自动检测）
+3. **被测模型** — 模型名/量化方式/框架/部署方式
+4. **核心性能指标** — TTFT/TPOT/吞吐/E2E 卡片（渐变字体）
+5. **稳定性 & SLA** — 成功率/失败数/SLA通过状态
+6. **可视化曲线** — 2张 Chart.js 图表（单点=柱状图，多点=折线图）
+7. **逐组明细表 + 性能分析结论**
 
-## HTML 风格规范
+### 比对 Excel（7 Sheets + 6 Charts）
 
-glass-card / glass-panel 深色玻璃态设计，Tailwind CSS + Chart.js，深色/浅色主题切换。
+| Sheet | 内容 |
+|---|---|
+| 测试概览 | A/B 设备 + 模型并列对比 |
+| 逐组对比明细 | A(10行)+B(10行) 各16列，合并+分Tab |
+| 汇总统计 | 10行对比指标 + 倍数结论 |
+| 自定义指标明细 | A/B 各自所有指标 |
+| 测试环境配置 | A/B 配置双列对比 |
+| 性能分析结论 | 9条对比结论（基于数据差异） |
+| 图表分析 | 图表源数据 |
 
-完整风格指南见 [references/html-style-guide.md](references/html-style-guide.md)。
+### 比对 HTML（6张图表 + Tab表 + 结论）
 
-## 关键实现要点
+- 6 张 Chart.js 图表：延迟/吞吐/TTFT/QPS/输出Tok/请求数
+- Tab切换：合并对比 / 设备A / 设备B
+- 8 条对比结论卡片（数据驱动）
+- 核心指标 4 卡片（含比值结论）
 
-### 并发数提取
+### 图表规则
 
-从测试脚本正则匹配 `'用户数': N`，不要假设并发数 = 序号：
+| 场景 | 图表类型 |
+|---|---|
+| 逐并发报告（1个数据点） | **柱状图** `type: 'bar'` |
+| 汇总报告（≥2个数据点） | **折线图** `type: 'line'` |
+| 比对报告 bar 类（输出Tok/请求数） | 始终柱状图 |
+
+---
+
+## 设备信息自动检测
+
+从 `device-*.md` 文件自动提取9个字段，支持多级目录搜索（从 stats_dir 向上查找父目录）：
+
+| 字段 | 提取来源 |
+|---|---|
+| `device` | 厂商/SoC → NPU型号 → GPU Product Name → 主机名+架构 |
+| `model` | vLLM `/v1/models` id → Docker 启动参数 → root 路径 → 容器名 |
+| `accelerator` | NPU统计（910B4×4卡）/ GPU（GB10 Blackwell 1卡） |
+| `cpu_info` | 大小核拓扑解析（X925@3.9G + A725@2.8G / 鲲鹏920:64核） |
+| `memory` | `free -h` / `free -k` 格式 |
+| `quantization` | 模型名后缀（FP8/BF16/INT4）→ 环境推断 |
+| `framework` | vLLM 版本号 |
+| `api_endpoint` | Docker 端口映射 → `--port` 启动参数 → 监听端口 |
+| `network_mode` | 容器 port mapping → host 网络 |
+
+当 CLi 未传 `--device`/`--model`/`--name-a`/`--name-b` 时，自动调用 `detect_device_info()` 检测，日志输出 `[检测] 设备: ... | 模型: ...`。
+
+---
+
+## Python API
 
 ```python
-import re
-concurrency = int(re.search(r"'用户数'\s*:\s*(\d+)", script_content).group(1))
+from scripts.generate_report import (
+    scan_test_groups,
+    detect_device_info,
+    generate_single_excel,
+    generate_single_html,
+    generate_compare_excel,
+    generate_compare_html,
+)
+
+# 扫描测试数据
+groups = scan_test_groups(r'path/to/HTML报告')
+
+# 检测设备信息
+info = detect_device_info(r'path/to/测试报告')
+# info[0] = {'device': 'NVIDIA GB10', 'accelerator': '...', 'cpu_info': '...', ...}
+
+# 生成单设备报告
+generate_single_excel(groups, 'NVIDIA GB10', 'Qwen3.6-35B', 'output.xlsx', device_info=info[0])
+generate_single_html(groups, 'NVIDIA GB10', 'Qwen3.6-35B', 'output.html', device_info=info[0])
+
+# 生成比对报告
+generate_compare_excel(groups_a, groups_b, 'GB10', '910B4', 'Qwen', 'qwen3.5', 'output.xlsx')
+generate_compare_html(groups_a, groups_b, 'GB10', '910B4', 'Qwen', 'qwen3.5', 'output.html',
+                       device_info_a=info_a[0], device_info_b=info_b[0])
 ```
 
-### stats.json 字段兼容
+---
 
-字段名可能是中文或英文，需同时处理：
+## 自定义模板
 
-```python
-avg_latency = row.get('avg_latency') or row.get('平均延迟', 0)
-```
+模板文件位于 `assets/` 目录：
 
-### 离线 HTML
+- `single-report-template.html` — 单设备 HTML 模板
+- `compare-report-template.html` — 比对 HTML 模板
 
-所有 CSS/JS 资源放 `assets/` 目录：
-- `inter-font.css`（base64 字体）
-- `tailwind.min.js`、`chart.umd.min.js`、`marked.min.js`
-- `fontawesome.min.css`（base64 图标）
+模板使用 `{{PLACEHOLDER}}` 占位符 + `{{REPORT_DATA_JSON}}` 数据注入。所有 CSS/JS 资源在生成时自动复制到输出目录。
 
-### 图表主题同步
-
-切换主题时必须销毁并重建 Chart.js 实例（颜色更新）：
-
-```javascript
-Object.values(charts).forEach(ch => ch.destroy());
-charts = {};
-// 重新创建...
-```
-
-### json.dumps 安全注入
-
-JS 中数据注入使用 `json.dumps(data, ensure_ascii=True)` 避免特殊字符问题。
-
-## 文件命名
-
-- HTML: `deeprunner_<设备名>测评报告.html`
-- 比对 HTML: `deeprunner_推理性能比对报告_<A>_vs_<B>.html`
-- Excel: `DeepRunner_推理性能比对报告_<A>_vs_<B>.xlsx`
+图片和字体资源：FontAwesome 图标使用 `<i class="fas fa-..."></i>`，Inter 字体通过 base64 内联。

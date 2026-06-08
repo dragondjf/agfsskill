@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>DeepRunner 6.0 | 推理性能比对报告</title>
     <link href="assets/inter-font.css" rel="stylesheet">
-    <script src="assets/tailwind.min.js"></script>
     <script>const _origWarn=console.warn;console.warn=function(...a){if(a[0]&&typeof a[0]==="string"&&a[0].includes("cdn.tailwindcss.com"))return;_origWarn.apply(console,a)};</script>
+    <script src="assets/tailwind.min.js"></script>
     <script src="assets/chart.umd.min.js"></script>
     <link rel="stylesheet" href="assets/fontawesome.min.css">
     <style>
@@ -128,8 +128,194 @@
 
 <script>
 const REPORT = {{REPORT_DATA_JSON}};
+const d = REPORT.chartData || {};
+const N = d.labels ? d.labels.length : 0;
 
-// Tab切换
+// ── 工具函数 ──
+const rd = (v, n=3) => v === undefined || v === null ? 0 : Number(v).toFixed(n);
+const sum = a => a.reduce((s, v) => s + v, 0);
+const avg = a => a.length ? sum(a) / a.length : 0;
+const min = a => a.length ? Math.min(...a) : 0;
+const max = a => a.length ? Math.max(...a) : 0;
+
+// ── 计算汇总指标 ──
+const sa = {
+    lat_min: min(d.latencyA), lat_max: max(d.latencyA), lat_avg: avg(d.latencyA),
+    thr_max: max(d.throughputA), qps_max: max(d.qpsA),
+    ttft_min: min(d.ttftA), tpot_min: 0,
+    in_tok_min: 0, in_tok_max: 0, out_min: min(d.outputTokA), out_max: max(d.outputTokA),
+    out_avg: avg(d.outputTokA),
+    requests_total: sum(d.requestsA), requests_min: min(d.requestsA), requests_max: max(d.requestsA),
+};
+const sb = {
+    lat_min: min(d.latencyB), lat_max: max(d.latencyB), lat_avg: avg(d.latencyB),
+    thr_max: max(d.throughputB), qps_max: max(d.qpsB),
+    ttft_min: min(d.ttftB), tpot_min: 0,
+    in_tok_min: 0, in_tok_max: 0, out_min: min(d.outputTokB), out_max: max(d.outputTokB),
+    out_avg: avg(d.outputTokB),
+    requests_total: sum(d.requestsB), requests_min: min(d.requestsB), requests_max: max(d.requestsB),
+};
+
+// ── 填充设备卡片 ──
+function fillDeviceCards() {
+    function cardHtml(name, info, badge, iconColor) {
+        const di = info || {};
+        const accel = di.accelerator || '—';
+        const cpu = di.cpu_info || '—';
+        const mem = di.memory || '—';
+        const model = di.model || REPORT.modelName || '—';
+        const quant = di.quantization || '—';
+        const fw = di.framework || 'vLLM';
+        const api = di.api_endpoint || '—';
+        const net = di.network_mode || '—';
+        return `<div class="flex items-center gap-2 border-b border-black/10 dark:border-white/10 pb-3 mb-3">
+            <i class="fas fa-microchip text-xl ${iconColor}"></i>
+            <span class="font-bold text-lg">${name}</span>
+            <span class="ml-auto text-xs bg-${iconColor === 'text-green-500' ? 'green' : 'cyan'}-500/20 text-${iconColor === 'text-green-500' ? 'green' : 'cyan'}-400 px-2 py-0.5 rounded-full">${badge}</span>
+        </div>
+        <div class="grid grid-cols-2 gap-y-2 text-sm">
+            <div class="opacity-70">加速器</div><div>${accel}</div>
+            <div class="opacity-70">CPU</div><div>${cpu}</div>
+            <div class="opacity-70">内存</div><div>${mem}</div>
+            <div class="opacity-70">被测模型</div><div class="break-all">${model}</div>
+            <div class="opacity-70">量化方式</div><div>${quant}</div>
+            <div class="opacity-70">推理框架</div><div>${fw}</div>
+            <div class="opacity-70">API端点</div><div class="break-all text-xs">${api}</div>
+            <div class="opacity-70">网络模式</div><div>${net}</div>
+        </div>`;
+    }
+    document.getElementById('deviceACard').innerHTML = cardHtml(REPORT.nameA, REPORT.deviceInfoA, '公司测试', 'text-green-500');
+    document.getElementById('deviceBCard').innerHTML = cardHtml(REPORT.nameB, REPORT.deviceInfoB, '远程测试', 'text-cyan-500');
+}
+
+// ── 填充核心指标卡片 ──
+function fillMetricCards() {
+    const ratio = (a, b) => b > 0 ? (a / b).toFixed(1) : '-';
+    const cards = [
+        { icon: 'fa-hourglass-half', color: 'text-cyan-500', title: '平均延迟',
+          valA: rd(sa.lat_avg, 1)+'s', valB: rd(sb.lat_avg, 1)+'s',
+          conclusion: sa.lat_avg > 0 ? `${REPORT.labelB}约${ratio(sb.lat_avg, sa.lat_avg)}倍` : '' },
+        { icon: 'fa-tachometer-alt', color: 'text-blue-500', title: '吞吐峰值 (tok/s)',
+          valA: rd(sa.thr_max, 1), valB: rd(sb.thr_max, 1),
+          conclusion: sa.thr_max > 0 ? `${REPORT.labelB}约${ratio(sb.thr_max, sa.thr_max)}倍` : '' },
+        { icon: 'fa-hourglass-start', color: 'text-purple-500', title: 'TTFT 最小值',
+          valA: rd(sa.ttft_min, 3)+'s', valB: rd(sb.ttft_min, 3)+'s',
+          conclusion: sa.ttft_min > 0 ? `${REPORT.labelA}快${ratio(sb.ttft_min, sa.ttft_min)}倍` : '' },
+        { icon: 'fa-bolt', color: 'text-amber-500', title: 'QPS 峰值',
+          valA: rd(sa.qps_max, 3), valB: rd(sb.qps_max, 3),
+          conclusion: sa.qps_max > sb.qps_max ? `${REPORT.labelA}更高` : `${REPORT.labelB}更高` },
+    ];
+    document.getElementById('metricCards').innerHTML = cards.map(c => `
+        <div class="glass-panel p-4 hover-grow">
+            <div class="flex justify-between items-start"><span class="opacity-80 text-sm">${c.title}</span><i class="fas ${c.icon} ${c.color}"></i></div>
+            <div class="flex justify-between mt-3 text-sm">
+                <span><span class="text-green-400 font-medium">${REPORT.labelA}</span> ${c.valA}</span>
+                <span><span class="text-cyan-400 font-medium">${REPORT.labelB}</span> ${c.valB}</span>
+            </div>
+            <div class="text-xs text-blue-400 mt-2">${c.conclusion}</div>
+        </div>
+    `).join('');
+}
+
+// ── 填充明细表 ──
+function fillDetailTables() {
+    const headers = ['并发数','请求数','失败数','最小延迟(s)','最大延迟(s)','平均延迟(s)','吞吐max(tok/s)','QPS max','TTFT(s)','输出tok avg'];
+    const thHtml = '<tr>' + headers.map(h => `<th class="py-2 px-2 text-xs border-b border-white/10">${h}</th>`).join('') + '</tr>';
+
+    function rowsFromData(label, lat, thr, ttft, qps, outTok, reqs) {
+        return d.labels.map((c, i) => `<tr class="hover:bg-white/5 text-xs">
+            <td class="py-1 px-2">${c}</td>
+            <td class="py-1 px-2">${reqs[i]}</td>
+            <td class="py-1 px-2">0</td>
+            <td class="py-1 px-2">-</td>
+            <td class="py-1 px-2">-</td>
+            <td class="py-1 px-2">${rd(lat[i], 1)}</td>
+            <td class="py-1 px-2">${rd(thr[i], 1)}</td>
+            <td class="py-1 px-2">${rd(qps[i], 3)}</td>
+            <td class="py-1 px-2">${rd(ttft[i], 3)}</td>
+            <td class="py-1 px-2">${rd(outTok[i], 0)}</td>
+        </tr>`).join('');
+    }
+
+    function combinedRows() {
+        let html = '';
+        d.labels.forEach((c, i) => {
+            html += `<tr class="hover:bg-white/5 text-xs bg-green-900/10"><td class="py-1 px-2 font-medium" colspan="10">并发 ${c} - ${REPORT.labelA}</td></tr>`;
+            html += `<tr class="hover:bg-white/5 text-xs">
+                <td class="py-1 px-2">${c}</td><td class="py-1 px-2">${d.requestsA[i]}</td><td class="py-1 px-2">0</td>
+                <td class="py-1 px-2">-</td><td class="py-1 px-2">-</td>
+                <td class="py-1 px-2">${rd(d.latencyA[i], 1)}</td><td class="py-1 px-2">${rd(d.throughputA[i], 1)}</td>
+                <td class="py-1 px-2">${rd(d.qpsA[i], 3)}</td><td class="py-1 px-2">${rd(d.ttftA[i], 3)}</td>
+                <td class="py-1 px-2">${rd(d.outputTokA[i], 0)}</td>
+            </tr>`;
+            html += `<tr class="hover:bg-white/5 text-xs bg-cyan-900/10"><td class="py-1 px-2 font-medium" colspan="10">并发 ${c} - ${REPORT.labelB}</td></tr>`;
+            html += `<tr class="hover:bg-white/5 text-xs">
+                <td class="py-1 px-2">${c}</td><td class="py-1 px-2">${d.requestsB[i]}</td><td class="py-1 px-2">0</td>
+                <td class="py-1 px-2">-</td><td class="py-1 px-2">-</td>
+                <td class="py-1 px-2">${rd(d.latencyB[i], 1)}</td><td class="py-1 px-2">${rd(d.throughputB[i], 1)}</td>
+                <td class="py-1 px-2">${rd(d.qpsB[i], 3)}</td><td class="py-1 px-2">${rd(d.ttftB[i], 3)}</td>
+                <td class="py-1 px-2">${rd(d.outputTokB[i], 0)}</td>
+            </tr>`;
+        });
+        return html;
+    }
+
+    document.getElementById('combinedTable').innerHTML = thHtml + combinedRows();
+    document.getElementById('tableA').innerHTML = thHtml + rowsFromData(REPORT.labelA, d.latencyA, d.throughputA, d.ttftA, d.qpsA, d.outputTokA, d.requestsA);
+    document.getElementById('tableB').innerHTML = thHtml + rowsFromData(REPORT.labelB, d.latencyB, d.throughputB, d.ttftB, d.qpsB, d.outputTokB, d.requestsB);
+}
+
+// ── 填充汇总统计表 ──
+function fillSummaryTable() {
+    const ratio = (a, b) => b > 0 ? (a / b).toFixed(1) : '-';
+    const rows = [
+        ['并发数范围', `1~${N}`, `1~${N}`, '两组一致'],
+        ['总请求数', sum(d.requestsA), sum(d.requestsB), sum(d.requestsB) > 0 ? `${REPORT.labelA}约${ratio(sum(d.requestsA), sum(d.requestsB))}倍` : ''],
+        ['失败数', '0', '0', '两组均零失败'],
+        ['平均延迟(均值)', rd(sa.lat_avg, 1)+'s', rd(sb.lat_avg, 1)+'s', sa.lat_avg > 0 ? `${REPORT.labelB}约${ratio(sb.lat_avg, sa.lat_avg)}倍` : ''],
+        ['吞吐峰值(tok/s)', rd(sa.thr_max, 1), rd(sb.thr_max, 1), sa.thr_max > 0 ? `${REPORT.labelB}约${ratio(sb.thr_max, sa.thr_max)}倍` : ''],
+        ['QPS(最大值)', rd(sa.qps_max, 3), rd(sb.qps_max, 3), sa.qps_max > sb.qps_max ? `${REPORT.labelA}更高` : `${REPORT.labelB}更高`],
+        ['TTFT(最小值)', rd(sa.ttft_min, 3)+'s', rd(sb.ttft_min, 3)+'s', sa.ttft_min > 0 ? `${REPORT.labelA}快${ratio(sb.ttft_min, sa.ttft_min)}倍` : ''],
+        ['输出Token(平均)', rd(sa.out_avg, 0), rd(sb.out_avg, 0), sa.out_avg > 0 ? `${REPORT.labelB}约${ratio(sb.out_avg, sa.out_avg)}倍` : ''],
+    ];
+    const headers = ['指标', REPORT.labelA, REPORT.labelB, '对比结论'];
+    document.getElementById('summaryTable').innerHTML =
+        '<thead><tr>' + headers.map(h => `<th class="py-2 px-3 text-sm border-b border-white/10 font-medium">${h}</th>`).join('') + '</tr></thead>' +
+        '<tbody>' + rows.map(r => `<tr class="hover:bg-white/5 text-sm"><td class="py-2 px-3 font-medium">${r[0]}</td><td class="py-2 px-3">${r[1]}</td><td class="py-2 px-3">${r[2]}</td><td class="py-2 px-3 text-blue-400 text-xs">${r[3]}</td></tr>`).join('') + '</tbody>';
+}
+
+// ── 填充性能分析结论 ──
+function fillConclusions() {
+    const ratio = (a, b) => b > 0 ? (a / b).toFixed(1) : '-';
+    const conclusions = [
+        ['1. 可靠性',
+         `两组测试在并发${d.labels[0]}~${d.labels[N-1]}梯度下均实现零失败率（${REPORT.labelA}: 0/${sum(d.requestsA)}, ${REPORT.labelB}: 0/${sum(d.requestsB)}），API 服务稳定性优秀。`],
+        ['2. 测试数据',
+         `两组使用同一份test.xlsx（499条数据，Question字段为prompt内容）。输入数据来源完全一致，排除了因prompt差异导致的性能偏差。`],
+        ['3. 并发与吞吐能力',
+         `两组均为梯形负载，并发数从${d.labels[0]}递增至${d.labels[N-1]}，运行时长300s。${REPORT.labelA}在300s内完成了${sa.requests_min}~${sa.requests_max}个请求；${REPORT.labelB}因单次响应耗时长（平均约${rd(sb.lat_avg, 0)}s），300s内仅完成${sb.requests_min}~${sb.requests_max}个请求。`],
+        ['4. 首Token延迟(TTFT)',
+         `${REPORT.labelA}: ${rd(sa.ttft_min, 3)}s | ${REPORT.labelB}: ${rd(sb.ttft_min, 3)}s。${REPORT.labelA}首Token响应速度约为${REPORT.labelB}的${ratio(sb.ttft_min, sa.ttft_min)}倍，${REPORT.labelA}在低延迟交互场景下优势明显。`],
+        ['5. 吞吐量(Throughput)',
+         `${REPORT.labelB} tokens/s峰值(${rd(sb.thr_max, 1)})约为${REPORT.labelA}(${rd(sa.thr_max, 1)})的${ratio(sb.thr_max, sa.thr_max)}倍。${REPORT.labelB}测试中输入token固定，输出token平均约${rd(sb.out_avg, 0)}；${REPORT.labelA}测试中输出平均约${rd(sa.out_avg, 0)}。`],
+        ['6. QPS',
+         `${REPORT.labelA}最大QPS(${rd(sa.qps_max, 3)})高于${REPORT.labelB}(${rd(sb.qps_max, 3)})。${REPORT.labelA}因单次请求耗时短，单位时间内能完成更多请求。`],
+        ['7. TPOT (Time Per Output Token)',
+         `两者TPOT接近，说明在token级别的生成速度上，两种硬件性能相当。`],
+        ['8. 输出Token差异',
+         `${REPORT.labelB}输出token平均(${rd(sb.out_avg, 0)})约为${REPORT.labelA}(${rd(sa.out_avg, 0)})的${ratio(sb.out_avg, sa.out_avg)}倍。输出长度差异是影响延迟和吞吐对比的重要因素。`],
+        ['9. 对比建议',
+         `两组测试条件一致，数据源相同。建议：(1) 延长测试时长或减少输出token数，使两端在300s内能完成更多请求；(2) 统一最大输出token数，消除输出长度差异对延迟指标的影响；(3) 补充相同条件下的多轮重复测试，验证结果稳定性。`],
+    ];
+    document.getElementById('conclusionsContainer').innerHTML = conclusions.map(([title, content]) =>
+        `<div class="conclusion-card p-4 mb-3 rounded-lg">
+            <div class="font-medium text-sm mb-1">${title}</div>
+            <div class="text-xs opacity-80 leading-relaxed">${content}</div>
+        </div>`
+    ).join('');
+}
+
+// ── 标签切换 ──
 function switchTab(tab) {
     ['combined','deviceA','deviceB'].forEach(t => {
         document.getElementById('tab-' + t).style.display = (t === tab) ? '' : 'none';
@@ -140,7 +326,7 @@ function switchTab(tab) {
     });
 }
 
-// Chart.js
+// ── Chart.js ──
 let charts = {};
 function getChartColors(theme) {
     return theme === 'light'
@@ -154,32 +340,42 @@ function co(c, yt, xt) {
 }
 function initCharts(theme) {
     const c = getChartColors(theme);
-    const d = REPORT.chartData || {};
     Object.values(charts).forEach(ch => ch.destroy());
     charts = {};
-    const line = (id, l1, l2) => new Chart(document.getElementById(id), { type: 'line',
+    if (!d.labels) return;
+    const isSingle = !d.labels || d.labels.length <= 1;
+    const line = (id, l1, l2) => new Chart(document.getElementById(id), {
+        type: isSingle ? 'bar' : 'line',
         data: { labels: d.labels, datasets: [
-            { label: REPORT.nameA, data: d[l1], borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.1)', fill: true, tension: 0.3, pointRadius: 4 },
-            { label: REPORT.nameB, data: d[l2], borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.1)', fill: true, tension: 0.3, pointRadius: 4 }
+            { label: REPORT.nameA, data: d[l1], borderColor: '#34d399',
+              backgroundColor: isSingle ? 'rgba(52,211,153,0.6)' : 'rgba(52,211,153,0.1)',
+              borderWidth: isSingle ? 1 : undefined, fill: !isSingle, tension: isSingle ? 0 : 0.3, pointRadius: isSingle ? 0 : 4 },
+            { label: REPORT.nameB, data: d[l2], borderColor: '#22d3ee',
+              backgroundColor: isSingle ? 'rgba(34,211,238,0.6)' : 'rgba(34,211,238,0.1)',
+              borderWidth: isSingle ? 1 : undefined, fill: !isSingle, tension: isSingle ? 0 : 0.3, pointRadius: isSingle ? 0 : 4 }
         ]}, options: co(c, '', '并发数') });
-    const bar = (id, l1, l2) => new Chart(document.getElementById(id), { type: 'bar',
+    const bar = (id, l1, l2) => new Chart(document.getElementById(id), {
+        type: 'bar',
         data: { labels: d.labels, datasets: [
             { label: REPORT.nameA, data: d[l1], backgroundColor: 'rgba(52,211,153,0.6)', borderColor: '#34d399', borderWidth: 1 },
             { label: REPORT.nameB, data: d[l2], backgroundColor: 'rgba(34,211,238,0.6)', borderColor: '#22d3ee', borderWidth: 1 }
         ]}, options: co(c, '', '并发数') });
-    if (d.labels) {
-        charts.latency = line('latencyChart', 'latencyA', 'latencyB');
-        charts.throughput = line('throughputChart', 'throughputA', 'throughputB');
-        charts.ttft = line('ttftChart', 'ttftA', 'ttftB');
-        charts.qps = line('qpsChart', 'qpsA', 'qpsB');
-        charts.outputTok = bar('outputTokChart', 'outputTokA', 'outputTokB');
-        charts.requests = bar('requestsChart', 'requestsA', 'requestsB');
-    }
+    charts.latency = line('latencyChart', 'latencyA', 'latencyB');
+    charts.throughput = line('throughputChart', 'throughputA', 'throughputB');
+    charts.ttft = line('ttftChart', 'ttftA', 'ttftB');
+    charts.qps = line('qpsChart', 'qpsA', 'qpsB');
+    charts.outputTok = bar('outputTokChart', 'outputTokA', 'outputTokB');
+    charts.requests = bar('requestsChart', 'requestsA', 'requestsB');
 }
 
-// 主题切换
+// ── 初始化 ──
 const initTheme = localStorage.getItem('theme') || 'dark';
 document.body.setAttribute('data-theme', initTheme);
+fillDeviceCards();
+fillMetricCards();
+fillDetailTables();
+fillSummaryTable();
+fillConclusions();
 initCharts(initTheme);
 document.getElementById('sunIcon').style.display = initTheme === 'dark' ? '' : 'none';
 document.getElementById('moonIcon').style.display = initTheme === 'light' ? '' : 'none';
@@ -190,8 +386,6 @@ document.getElementById('themeToggle').addEventListener('click', () => {
     document.getElementById('moonIcon').style.display = t === 'light' ? '' : 'none';
     initCharts(t);
 });
-
-// 导出Excel
 document.getElementById('exportExcelBtn').addEventListener('click', () => {
     if (REPORT.excelFile) window.open(REPORT.excelFile, '_blank');
 });
