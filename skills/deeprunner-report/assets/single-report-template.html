@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>{{TITLE}}</title>
+    <link href="assets/inter-font.css" rel="stylesheet">
+    <script src="assets/tailwind.min.js"></script>
+    <script>const _origWarn=console.warn;console.warn=function(...a){if(a[0]&&typeof a[0]==="string"&&a[0].includes("cdn.tailwindcss.com"))return;_origWarn.apply(console,a)};</script>
+    <script src="assets/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="assets/fontawesome.min.css">
+    <style>
+        /* ── 深色/浅色主题变量 ── */
+        * { transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease; }
+        body { font-family: 'Inter', sans-serif; min-height: 100vh; }
+        body[data-theme="dark"] { background: linear-gradient(145deg, #0a0f1c 0%, #0c1222 100%); color: #e2e8f0; }
+        body[data-theme="dark"] .glass-card { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(59, 130, 246, 0.3); }
+        body[data-theme="dark"] .glass-panel { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(148, 163, 184, 0.2); }
+        body[data-theme="dark"] code { background: #0f172a; color: #cbd5e1; }
+        body[data-theme="light"] { background: #f1f5f9; color: #0f172a; }
+        body[data-theme="light"] .glass-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(100, 116, 139, 0.2); box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
+        body[data-theme="light"] .glass-panel { background: rgba(255, 255, 255, 0.7); border: 1px solid rgba(100, 116, 139, 0.15); }
+        body[data-theme="light"] .bg-black\/30, body[data-theme="light"] .bg-black\/40 { background: rgba(0,0,0,0.05); }
+        .sla-badge { border-radius: 20px; padding: 4px 12px; font-size: 0.7rem; font-weight: 600; }
+        .sla-pass-d { background: #10b98120; color: #34d399; border: 1px solid #10b98160; }
+        .sla-pass-l { background: #d1fae5; color: #065f46; border-color: #10b981; }
+        .sla-warn-d { background: #f59e0b20; color: #fbbf24; border: 1px solid #f59e0b60; }
+        .sla-warn-l { background: #fed7aa; color: #92400e; border-color: #f59e0b; }
+        body[data-theme="light"] .sla-pass-d { display: none; }
+        body[data-theme="dark"] .sla-pass-l { display: none; }
+        body[data-theme="light"] .sla-warn-d { display: none; }
+        body[data-theme="dark"] .sla-warn-l { display: none; }
+        .hover-grow { transition: transform 0.2s ease, box-shadow 0.2s; }
+        .hover-grow:hover { transform: translateY(-3px); box-shadow: 0 20px 25px -12px rgba(0,0,0,0.15); }
+        table th { position: sticky; top: 0; z-index: 10; }
+        /* 硬件信息弹窗 */
+        #mdOverlay { transition: opacity 0.2s ease; }
+        #mdOverlay.hidden { display: none !important; }
+        #mdContent::-webkit-scrollbar { width: 6px; }
+        #mdContent::-webkit-scrollbar-track { background: transparent; }
+        #mdContent::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.3); border-radius: 3px; }
+    </style>
+</head>
+<body data-theme="dark" class="p-6">
+<div class="max-w-7xl mx-auto relative">
+
+    <!-- 顶部操作按钮 -->
+    <div class="fixed top-6 right-6 z-50 flex items-center gap-2">
+        <button id="exportWordBtn" class="glass-card px-4 py-2 rounded-full shadow-lg backdrop-blur-md text-xs font-medium hover:bg-blue-600/20 transition-all" title="导出Word报告">
+            <i class="fas fa-file-word mr-1"></i> 导出Word
+        </button>
+        <button id="viewHardwareBtn" class="glass-card px-4 py-2 rounded-full shadow-lg backdrop-blur-md text-xs font-medium hover:bg-emerald-600/20 transition-all" title="查看原始硬件信息">
+            <i class="fas fa-server mr-1"></i> 硬件信息
+        </button>
+        <button id="themeToggle" class="glass-card rounded-full p-3 shadow-lg backdrop-blur-md w-12 h-12 flex items-center justify-center text-xl">
+            <i class="fas fa-sun" id="sunIcon"></i>
+            <i class="fas fa-moon" id="moonIcon" style="display:none"></i>
+        </button>
+    </div>
+
+    <!-- 一、报告元信息 -->
+    <div class="glass-card p-6 mb-6">
+        <div class="flex flex-wrap justify-between items-start gap-4">
+            <div>
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-chart-line text-3xl text-blue-500"></i>
+                    <h1 class="text-2xl font-bold tracking-tight">{{DEVICE_NAME}} 推理性能测评报告</h1>
+                </div>
+                <div class="flex flex-wrap gap-x-6 gap-y-2 mt-3 text-sm">
+                    <span><i class="far fa-calendar-alt mr-1"></i> 报告日期：{{DATE}}</span>
+                    <span><i class="fas fa-tools mr-1"></i> 测评工具：DeepRunner 6.0</span>
+                    <span><i class="fas fa-code-branch mr-1"></i> 模型：{{MODEL_NAME}}</span>
+                </div>
+                <div class="flex flex-wrap gap-3 mt-2 text-xs">
+                    <span class="px-3 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/40"><i class="fas fa-check-circle mr-1"></i>零失败</span>
+                    <span class="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/40"><i class="fas fa-layer-group mr-1"></i>{{GROUP_COUNT}}组测试</span>
+                </div>
+            </div>
+            <div class="glass-panel rounded-2xl px-5 py-2 text-center">
+                <div class="text-xs">稳态压测时长</div>
+                <div class="text-2xl font-mono font-bold">{{RUNTIME}} <span class="text-sm">s</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 二、被测设备 + 被测模型 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="glass-panel p-5 hover-grow">
+            <div class="flex items-center gap-2 border-b border-black/10 dark:border-white/10 pb-3 mb-3">
+                <i class="fas fa-microchip text-cyan-500 text-xl"></i>
+                <span class="font-bold text-lg">被测设备</span>
+            </div>
+            <div id="deviceInfo" class="grid grid-cols-2 gap-y-2 text-sm">
+                <!-- 由 JS 动态填充 -->
+            </div>
+        </div>
+        <div class="glass-panel p-5 hover-grow">
+            <div class="flex items-center gap-2 border-b border-black/10 dark:border-white/10 pb-3 mb-3">
+                <i class="fas fa-brain text-purple-500 text-xl"></i>
+                <span class="font-bold text-lg">被测模型</span>
+            </div>
+            <div id="modelInfo" class="grid grid-cols-2 gap-y-2 text-sm">
+                <!-- 由 JS 动态填充 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 三、核心性能指标卡片 -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+        <div class="glass-panel p-5 hover-grow">
+            <div class="flex justify-between items-start"><span class="opacity-80 text-sm">TTFT (首Token时延)</span><i class="fas fa-hourglass-half text-cyan-500"></i></div>
+            <div class="text-3xl font-bold mt-2">{{TTFT_VALUE}} <span class="text-base font-normal opacity-70">s</span></div>
+            <div class="text-xs text-green-600 mt-1">{{TTFT_STATUS}}</div>
+        </div>
+        <div class="glass-panel p-5 hover-grow">
+            <div class="flex justify-between items-start"><span class="opacity-80 text-sm">TPOT (每输出Token)</span><i class="fas fa-code-branch text-purple-500"></i></div>
+            <div class="text-3xl font-bold mt-2">{{TPOT_VALUE}} <span class="text-base font-normal opacity-70">s</span></div>
+            <div class="text-xs opacity-70 mt-1">{{TPOT_STATUS}}</div>
+        </div>
+        <div class="glass-panel p-5 hover-grow">
+            <div class="flex justify-between items-start"><span class="opacity-80 text-sm">输出吞吐 (tokens/s)</span><i class="fas fa-tachometer-alt text-blue-500"></i></div>
+            <div class="text-3xl font-bold mt-2">{{THROUGHPUT_VALUE}} <span class="text-base font-normal opacity-70">tok/s</span></div>
+            <div class="text-xs opacity-70 mt-1">{{THROUGHPUT_STATUS}}</div>
+        </div>
+        <div class="glass-panel p-5 hover-grow">
+            <div class="flex justify-between items-start"><span class="opacity-80 text-sm">端到端延迟 (E2E)</span><i class="fas fa-clock text-amber-500"></i></div>
+            <div class="text-3xl font-bold mt-2">{{E2E_VALUE}} <span class="text-base font-normal opacity-70">s</span></div>
+            <div class="text-xs opacity-70 mt-1">{{E2E_STATUS}}</div>
+        </div>
+    </div>
+
+    <!-- 四、可视化图表（占位，由JS初始化） -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="glass-panel p-4"><div class="flex items-center gap-2 mb-3"><i class="fas fa-chart-line text-indigo-500"></i><span class="font-medium">并发-吞吐曲线</span></div><canvas id="throughputChart" height="200"></canvas></div>
+        <div class="glass-panel p-4"><div class="flex items-center gap-2 mb-3"><i class="fas fa-hourglass-half text-rose-500"></i><span class="font-medium">时延指标随并发变化</span></div><canvas id="latencyChart" height="200"></canvas></div>
+    </div>
+
+    <!-- 五、逐组测试明细表 -->
+    <div class="glass-panel p-5 mb-6 overflow-x-auto">
+        <div class="flex items-center gap-2 mb-3"><i class="fas fa-table mr-2"></i><span class="font-semibold">逐组测试数据明细</span></div>
+        <table class="min-w-full text-sm text-left">
+            <thead class="border-b border-black/10 dark:border-white/10" id="detailTableHead"></thead>
+            <tbody class="divide-y divide-black/5 dark:divide-white/5" id="detailTableBody"></tbody>
+        </table>
+    </div>
+
+    <!-- 电子签署 -->
+    <div class="glass-panel p-5 flex flex-wrap justify-between items-center text-sm">
+        <div><i class="fas fa-signature mr-2"></i>电子签署：五阶段均已确认 ({{SIGNER}} {{SIGN_DATE}})</div>
+    </div>
+
+    <div class="text-center text-[11px] opacity-50 mt-6 border-t border-black/10 dark:border-white/10 pt-4">本报告由 DeepRunner 6.0 推理性能测评工具生成，数据基于真实设备采集与压测，可复现。</div>
+</div>
+
+<script>
+// ── 数据注入（由 Python 生成时替换） ──
+const REPORT_DATA = {{REPORT_DATA_JSON}};
+
+// ── Chart.js 图表 ──
+let charts = {};
+function getChartColors(theme) {
+    return theme === 'light'
+        ? { grid: '#e2e8f0', label: '#334155', title: '#1e293b' }
+        : { grid: '#1e293b', label: '#94a3b8', title: '#cbd5e1' };
+}
+function commonOpts(c, yTitle, xTitle) {
+    return {
+        responsive: true, maintainAspectRatio: true,
+        plugins: { legend: { labels: { color: c.label, usePointStyle: true } }, tooltip: { mode: 'index', intersect: false } },
+        scales: { y: { title: { display: true, text: yTitle, color: c.title }, grid: { color: c.grid }, ticks: { color: c.label } }, x: { title: { display: true, text: xTitle, color: c.title }, grid: { color: c.grid }, ticks: { color: c.label } } }
+    };
+}
+function initCharts(theme) {
+    const c = getChartColors(theme);
+    const d = REPORT_DATA;
+    Object.values(charts).forEach(ch => ch.destroy());
+    charts = {};
+    if (d.chartData && d.chartData.concurrency) {
+        charts.throughput = new Chart(document.getElementById('throughputChart'), {
+            type: 'line', data: { labels: d.chartData.concurrency, datasets: [
+                { label: '输出吞吐 (tok/s)', data: d.chartData.throughput, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3, pointRadius: 4 }
+            ]}, options: commonOpts(c, '吞吐 (tok/s)', '并发数')
+        });
+        charts.latency = new Chart(document.getElementById('latencyChart'), {
+            type: 'line', data: { labels: d.chartData.concurrency, datasets: [
+                { label: '平均延迟 (s)', data: d.chartData.latency, borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.1)', fill: true, tension: 0.3, pointRadius: 4 }
+            ]}, options: commonOpts(c, '延迟 (秒)', '并发数')
+        });
+    }
+}
+
+// ── 填充明细表 ──
+function fillDetailTable() {
+    const d = REPORT_DATA;
+    if (!d.detailRows || !d.detailRows.length) return;
+    const keys = ['序号','并发数','请求数','失败数','最小延迟(s)','最大延迟(s)','平均延迟(s)','吞吐min','吞吐max','QPS min','QPS max','TTFT(s)','TPOT(s)','输入tok','输出tok min','输出tok max'];
+    document.getElementById('detailTableHead').innerHTML = '<tr>' + keys.map(k => `<th class="py-2 px-2">${k}</th>`).join('') + '</tr>';
+    document.getElementById('detailTableBody').innerHTML = d.detailRows.map(r =>
+        '<tr class="hover:bg-white/5">' + r.map(v => `<td class="py-2 px-2">${v}</td>`).join('') + '</tr>'
+    ).join('');
+}
+
+// ── 主题切换 ──
+const initTheme = localStorage.getItem('theme') || 'dark';
+document.body.setAttribute('data-theme', initTheme);
+initCharts(initTheme);
+fillDetailTable();
+document.getElementById('themeToggle').addEventListener('click', () => {
+    const t = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.body.setAttribute('data-theme', t);
+    localStorage.setItem('theme', t);
+    document.getElementById('sunIcon').style.display = t === 'dark' ? '' : 'none';
+    document.getElementById('moonIcon').style.display = t === 'light' ? '' : 'none';
+    initCharts(t);
+});
+document.getElementById('sunIcon').style.display = initTheme === 'dark' ? '' : 'none';
+document.getElementById('moonIcon').style.display = initTheme === 'light' ? '' : 'none';
+
+// ── 导出Word ──
+document.getElementById('exportWordBtn').addEventListener('click', () => {
+    if (REPORT_DATA.wordFile) window.open(REPORT_DATA.wordFile, '_blank');
+});
+</script>
+</body>
+</html>

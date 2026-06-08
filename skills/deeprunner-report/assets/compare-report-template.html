@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>DeepRunner 6.0 | 推理性能比对报告</title>
+    <link href="assets/inter-font.css" rel="stylesheet">
+    <script src="assets/tailwind.min.js"></script>
+    <script>const _origWarn=console.warn;console.warn=function(...a){if(a[0]&&typeof a[0]==="string"&&a[0].includes("cdn.tailwindcss.com"))return;_origWarn.apply(console,a)};</script>
+    <script src="assets/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="assets/fontawesome.min.css">
+    <style>
+        * { transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease; }
+        body { font-family: 'Inter', sans-serif; min-height: 100vh; }
+        body[data-theme="dark"] { background: linear-gradient(145deg, #0a0f1c 0%, #0c1222 100%); color: #e2e8f0; }
+        body[data-theme="dark"] .glass-card { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(59, 130, 246, 0.3); }
+        body[data-theme="dark"] .glass-panel { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(148, 163, 184, 0.2); }
+        body[data-theme="light"] { background: #f1f5f9; color: #0f172a; }
+        body[data-theme="light"] .glass-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(100, 116, 139, 0.2); box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
+        body[data-theme="light"] .glass-panel { background: rgba(255, 255, 255, 0.7); border: 1px solid rgba(100, 116, 139, 0.15); }
+        body[data-theme="light"] .bg-black\/30 { background: rgba(0,0,0,0.05); }
+        .hover-grow { transition: transform 0.2s ease, box-shadow 0.2s; }
+        .hover-grow:hover { transform: translateY(-3px); box-shadow: 0 20px 25px -12px rgba(0,0,0,0.15); }
+        .tab-btn { cursor: pointer; padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 500; }
+        .tab-btn.active-d { background: rgba(59,130,246,0.2); color: #60a5fa; border: 1px solid rgba(59,130,246,0.4); }
+        .tab-btn.active-l { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
+        body[data-theme="dark"] .tab-btn.active-l { display: none; }
+        body[data-theme="light"] .tab-btn.active-d { display: none; }
+        .tab-btn:not([class*="active"]) { background: transparent; border: 1px solid transparent; opacity: 0.7; }
+        .tab-btn:not([class*="active"]):hover { opacity: 1; background: rgba(100,116,139,0.1); }
+        table th { position: sticky; top: 0; z-index: 10; }
+        body[data-theme="dark"] .conclusion-card { background: rgba(15,23,42,0.5); border-left: 3px solid #3b82f6; }
+        body[data-theme="light"] .conclusion-card { background: rgba(241,245,249,0.8); border-left: 3px solid #2563eb; }
+    </style>
+</head>
+<body data-theme="dark" class="p-6">
+<div class="max-w-7xl mx-auto relative">
+
+    <!-- 顶部操作按钮 -->
+    <div class="fixed top-6 right-6 z-50 flex items-center gap-2">
+        <button id="exportExcelBtn" class="glass-card px-4 py-2 rounded-full shadow-lg backdrop-blur-md text-xs font-medium hover:bg-blue-600/20 transition-all">
+            <i class="fas fa-file-excel mr-1"></i> 导出Excel
+        </button>
+        <button id="themeToggle" class="glass-card rounded-full p-3 shadow-lg backdrop-blur-md w-12 h-12 flex items-center justify-center text-xl">
+            <i class="fas fa-sun" id="sunIcon"></i>
+            <i class="fas fa-moon" id="moonIcon" style="display:none"></i>
+        </button>
+    </div>
+
+    <!-- 一、报告元信息 -->
+    <div class="glass-card p-6 mb-6">
+        <div class="flex flex-wrap justify-between items-start gap-4">
+            <div>
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-chart-bar text-3xl text-blue-500"></i>
+                    <h1 class="text-2xl font-bold tracking-tight">DeepRunner 6.0 推理性能比对报告</h1>
+                </div>
+                <div class="flex flex-wrap gap-x-6 gap-y-2 mt-3 text-sm">
+                    <span><i class="far fa-calendar-alt mr-1"></i> 报告日期：{{DATE_RANGE}}</span>
+                    <span><i class="fas fa-tools mr-1"></i> 测评工具：DeepRunner 6.0</span>
+                    <span><i class="fas fa-code-branch mr-1"></i> 模型：{{MODEL_NAME}}</span>
+                </div>
+                <div class="flex flex-wrap gap-3 mt-2 text-xs">
+                    <!-- 由JS动态填充标签 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 二、设备与环境对比 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="glass-panel p-5 hover-grow" id="deviceACard">
+            <!-- 由 JS 填充 -->
+        </div>
+        <div class="glass-panel p-5 hover-grow" id="deviceBCard">
+            <!-- 由 JS 填充 -->
+        </div>
+    </div>
+
+    <!-- 三、核心指标对比卡片 -->
+    <div id="metricCards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+        <!-- 由 JS 填充 -->
+    </div>
+
+    <!-- 四、可视化图表 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6" id="chartGrid">
+        <div class="glass-panel p-4"><div class="flex items-center gap-2 mb-3"><i class="fas fa-clock text-amber-500"></i><span class="font-medium">平均延迟对比</span></div><canvas id="latencyChart" height="220"></canvas></div>
+        <div class="glass-panel p-4"><div class="flex items-center gap-2 mb-3"><i class="fas fa-tachometer-alt text-blue-500"></i><span class="font-medium">吞吐量对比 (tokens/s)</span></div><canvas id="throughputChart" height="220"></canvas></div>
+        <div class="glass-panel p-4"><div class="flex items-center gap-2 mb-3"><i class="fas fa-hourglass-half text-cyan-500"></i><span class="font-medium">TTFT (首Token时延) 对比</span></div><canvas id="ttftChart" height="220"></canvas></div>
+        <div class="glass-panel p-4"><div class="flex items-center gap-2 mb-3"><i class="fas fa-bolt text-purple-500"></i><span class="font-medium">QPS (每秒请求数) 对比</span></div><canvas id="qpsChart" height="220"></canvas></div>
+        <div class="glass-panel p-4"><div class="flex items-center gap-2 mb-3"><i class="fas fa-file-alt text-indigo-500"></i><span class="font-medium">输出Token数对比</span></div><canvas id="outputTokChart" height="220"></canvas></div>
+        <div class="glass-panel p-4"><div class="flex items-center gap-2 mb-3"><i class="fas fa-list-ol text-green-500"></i><span class="font-medium">完成请求数对比</span></div><canvas id="requestsChart" height="220"></canvas></div>
+    </div>
+
+    <!-- 五、逐组对比明细（Tab切换） -->
+    <div class="glass-panel p-5 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <span class="font-semibold"><i class="fas fa-table mr-2"></i>逐组测试数据对比明细</span>
+            <div class="flex gap-2">
+                <button class="tab-btn active-d active-l" data-tab="combined" onclick="switchTab('combined')">合并对比</button>
+                <button class="tab-btn" data-tab="deviceA" onclick="switchTab('deviceA')">{{NAME_A_SHORT}}</button>
+                <button class="tab-btn" data-tab="deviceB" onclick="switchTab('deviceB')">{{NAME_B_SHORT}}</button>
+            </div>
+        </div>
+        <div id="tab-combined" class="overflow-x-auto"><table class="min-w-full text-sm text-left" id="combinedTable"></table></div>
+        <div id="tab-deviceA" class="overflow-x-auto" style="display:none"><table class="min-w-full text-sm text-left" id="tableA"></table></div>
+        <div id="tab-deviceB" class="overflow-x-auto" style="display:none"><table class="min-w-full text-sm text-left" id="tableB"></table></div>
+    </div>
+
+    <!-- 六、汇总统计 -->
+    <div class="glass-panel p-5 mb-6 overflow-x-auto">
+        <div class="flex items-center gap-2 mb-3"><i class="fas fa-calculator text-indigo-500"></i><span class="font-semibold">核心性能指标汇总对比</span></div>
+        <table class="min-w-full text-sm text-left" id="summaryTable"></table>
+    </div>
+
+    <!-- 七、性能分析结论 -->
+    <div class="glass-panel p-5 mb-6">
+        <div class="flex items-center gap-2 mb-4"><i class="fas fa-clipboard-check text-green-500"></i><span class="font-semibold">性能分析结论</span></div>
+        <div id="conclusionsContainer"></div>
+    </div>
+
+    <!-- 电子签署 -->
+    <div class="glass-panel p-5 flex flex-wrap justify-between items-center text-sm">
+        <div><i class="fas fa-signature mr-2"></i>电子签署：五阶段均已确认 ({{SIGNER}} {{SIGN_DATE}})</div>
+    </div>
+    <div class="text-center text-[11px] opacity-50 mt-6 border-t border-black/10 dark:border-white/10 pt-4">本报告由 DeepRunner 6.0 推理性能测评工具生成，数据基于真实设备采集与压测，可复现。</div>
+</div>
+
+<script>
+const REPORT = {{REPORT_DATA_JSON}};
+
+// Tab切换
+function switchTab(tab) {
+    ['combined','deviceA','deviceB'].forEach(t => {
+        document.getElementById('tab-' + t).style.display = (t === tab) ? '' : 'none';
+    });
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active-d', 'active-l');
+        if (btn.dataset.tab === tab) btn.classList.add('active-d', 'active-l');
+    });
+}
+
+// Chart.js
+let charts = {};
+function getChartColors(theme) {
+    return theme === 'light'
+        ? { grid: '#e2e8f0', label: '#334155', title: '#1e293b' }
+        : { grid: '#1e293b', label: '#94a3b8', title: '#cbd5e1' };
+}
+function co(c, yt, xt) {
+    return { responsive: true, maintainAspectRatio: true,
+        plugins: { legend: { labels: { color: c.label, usePointStyle: true } }, tooltip: { mode: 'index', intersect: false } },
+        scales: { y: { title: { display: true, text: yt, color: c.title }, grid: { color: c.grid }, ticks: { color: c.label } }, x: { title: { display: true, text: xt, color: c.title }, grid: { color: c.grid }, ticks: { color: c.label } } } };
+}
+function initCharts(theme) {
+    const c = getChartColors(theme);
+    const d = REPORT.chartData || {};
+    Object.values(charts).forEach(ch => ch.destroy());
+    charts = {};
+    const line = (id, l1, l2) => new Chart(document.getElementById(id), { type: 'line',
+        data: { labels: d.labels, datasets: [
+            { label: REPORT.nameA, data: d[l1], borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.1)', fill: true, tension: 0.3, pointRadius: 4 },
+            { label: REPORT.nameB, data: d[l2], borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.1)', fill: true, tension: 0.3, pointRadius: 4 }
+        ]}, options: co(c, '', '并发数') });
+    const bar = (id, l1, l2) => new Chart(document.getElementById(id), { type: 'bar',
+        data: { labels: d.labels, datasets: [
+            { label: REPORT.nameA, data: d[l1], backgroundColor: 'rgba(52,211,153,0.6)', borderColor: '#34d399', borderWidth: 1 },
+            { label: REPORT.nameB, data: d[l2], backgroundColor: 'rgba(34,211,238,0.6)', borderColor: '#22d3ee', borderWidth: 1 }
+        ]}, options: co(c, '', '并发数') });
+    if (d.labels) {
+        charts.latency = line('latencyChart', 'latencyA', 'latencyB');
+        charts.throughput = line('throughputChart', 'throughputA', 'throughputB');
+        charts.ttft = line('ttftChart', 'ttftA', 'ttftB');
+        charts.qps = line('qpsChart', 'qpsA', 'qpsB');
+        charts.outputTok = bar('outputTokChart', 'outputTokA', 'outputTokB');
+        charts.requests = bar('requestsChart', 'requestsA', 'requestsB');
+    }
+}
+
+// 主题切换
+const initTheme = localStorage.getItem('theme') || 'dark';
+document.body.setAttribute('data-theme', initTheme);
+initCharts(initTheme);
+document.getElementById('sunIcon').style.display = initTheme === 'dark' ? '' : 'none';
+document.getElementById('moonIcon').style.display = initTheme === 'light' ? '' : 'none';
+document.getElementById('themeToggle').addEventListener('click', () => {
+    const t = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.body.setAttribute('data-theme', t); localStorage.setItem('theme', t);
+    document.getElementById('sunIcon').style.display = t === 'dark' ? '' : 'none';
+    document.getElementById('moonIcon').style.display = t === 'light' ? '' : 'none';
+    initCharts(t);
+});
+
+// 导出Excel
+document.getElementById('exportExcelBtn').addEventListener('click', () => {
+    if (REPORT.excelFile) window.open(REPORT.excelFile, '_blank');
+});
+</script>
+</body>
+</html>
