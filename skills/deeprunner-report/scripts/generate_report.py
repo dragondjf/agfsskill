@@ -1660,12 +1660,20 @@ def detect_device_info(stats_dir):
 
 
 def _build_chart_data(groups):
-    """从 groups 构建 chartData 结构：concurrency, throughput, latency"""
+    """从 groups 构建 chartData 结构：并发/吞吐/延迟/TTFT/QPS/输出Token/请求数"""
     sorted_groups = sorted(groups, key=lambda g: g['concurrency'])
     return {
         'concurrency': [g['concurrency'] for g in sorted_groups],
         'throughput': [g['stats']['metrics'].get('throughput_max', 0) for g in sorted_groups],
         'latency': [_round(g['stats']['metrics'].get('avg_latency', 0)) for g in sorted_groups],
+        'ttft': [_round(g['stats']['metrics'].get('avg_ttft', 0), 3) for g in sorted_groups],
+        'qps': [_round(g['stats']['metrics'].get('max_qps', 0), 3) for g in sorted_groups],
+        'outputTok': [int(g['stats']['metrics'].get('avg_output_tokens', 0)) or
+                      (int((g['stats']['metrics'].get('min_output_tokens', 0) +
+                            g['stats']['metrics'].get('max_output_tokens', 0)) / 2)
+                       if g['stats']['metrics'].get('max_output_tokens', 0) > 0 else 0)
+                      for g in sorted_groups],
+        'requests': [g['stats']['total_requests'] for g in sorted_groups],
     }
 
 
@@ -1727,7 +1735,9 @@ def generate_single_html(groups, device_name, model_name, output_path, device_in
             total_errors['exception_count'] += err.get('exception_count', 0)
             total_errors['sla_count'] += err.get('sla_count', 0)
     if device_info:
-        device_info = dict(device_info)
+        if isinstance(device_info, list) and device_info:
+            device_info = device_info[0] if isinstance(device_info[0], dict) else {}
+        device_info = dict(device_info) if isinstance(device_info, dict) else {}
         device_info['errors'] = total_errors
     
     report_data = {
@@ -1781,7 +1791,7 @@ def generate_single_html(groups, device_name, model_name, output_path, device_in
     print(f"[OK] 单设备 HTML 报告已生成: {output_path}")
 
 
-def generate_compare_html(groups_a, groups_b, name_a, name_b, model_a, model_b, output_path, device_info_a=None, device_info_b=None):
+def generate_compare_html(groups_a, groups_b, name_a, name_b, model_a, model_b, output_path, device_info_a=None, device_info_b=None, excel_file=None):
     """生成双设备比对 HTML 可视化报告"""
     template_path = _ASSETS_DIR / 'compare-report-template.html'
     if not template_path.exists():
@@ -1847,7 +1857,7 @@ def generate_compare_html(groups_a, groups_b, name_a, name_b, model_a, model_b, 
         'deviceInfoA': device_info_a,
         'deviceInfoB': device_info_b,
         'chartData': chart_data,
-        'excelFile': None,
+        'excelFile': excel_file,
     }
 
     # 替换占位符
@@ -2135,5 +2145,480 @@ def main():
                               device_info_a=dev_a_info,
                               device_info_b=dev_b_info)
 
-if __name__ == '__main__':
-    main()
+
+# ── 辅助函数：自动检测 + Web UI 业务逻辑（从 app.py 整合） ──
+
+def _match_device_info(subdir, info_list):
+    """从多条设备信息中，根据子目录中 stats.json 的 API endpoint 匹配最合适的"""
+    if len(info_list) <= 1:
+        return info_list[0] if info_list else {}
+    api_url = ''
+    for sf in Path(subdir).rglob('stats.json'):
+        try:
+            with open(sf, 'r', encoding='utf-8') as f:
+                stats_data = json.load(f)
+            if isinstance(stats_data, list) and stats_data:
+                api_url = stats_data[0].get('name', '')
+        except Exception:
+            pass
+        break
+    if api_url:
+        for di in info_list:
+            ep = di.get('api_endpoint', '')
+            if ep and (ep in api_url or api_url.startswith(ep)):
+                return di
+    model_name = ''
+    for pyf in Path(subdir).rglob('test*.py'):
+        try:
+            for line in pyf.read_text('utf-8').split('\n'):
+                if 'model' in line.lower() and ('=' in line or ':' in line):
+                    m = re.search(r"['\"]([^'\"]+)['\"]", line)
+                    if m:
+                        model_name = m.group(1)
+                        break
+        except Exception:
+            pass
+        if model_name:
+            break
+    if model_name:
+        for di in info_list:
+            dm = di.get('model', '')
+            if dm and (dm == model_name or dm.endswith(model_name) or model_name in dm):
+                return di
+    # 兜底：优先选择 accelerator/cpu_info/memory 有实际值的条目（过滤掉不完整的 device-and-model-config.md 等）
+    complete = [di for di in info_list if di.get('accelerator') or di.get('cpu_info')]
+    if complete:
+        return complete[0]
+    return info_list[0]
+
+
+def _build_preview(groups):
+    """从 groups 构建前端预览数据"""
+    groups = sorted(groups, key=lambda g: g['concurrency'])
+    result = []
+    for g in groups:
+        m = g['stats']['metrics']
+        result.append({
+            'name': g['name'],
+            'concurrency': g['concurrency'],
+            'total_requests': g['stats']['total_requests'],
+            'failed_requests': g['stats']['failed_requests'],
+            'success_rate': round((g['stats']['total_requests'] - g['stats']['failed_requests']) / max(g['stats']['total_requests'], 1) * 100, 2),
+            'avg_latency': round(m.get('avg_latency', 0), 3),
+            'throughput_min': round(m.get('throughput_min', 0), 2),
+            'throughput_max': round(m.get('throughput_max', 0), 2),
+            'avg_qps': round(m.get('avg_qps', 0), 3),
+            'max_qps': round(m.get('max_qps', 0), 3),
+            'min_latency': round(m.get('min_latency', 0), 3),
+            'max_latency': round(m.get('max_latency', 0), 3),
+            'avg_ttft': round(m.get('avg_ttft', 0), 3),
+            'avg_tpot': round(m.get('avg_tpot', 0), 4),
+            'avg_input_tokens': round(m.get('avg_input_tokens', 0)),
+            'min_output_tokens': round(m.get('min_output_tokens', 0)),
+            'max_output_tokens': round(m.get('max_output_tokens', 0)),
+            'avg_output_tokens': round(m.get('avg_output_tokens', 0)),
+        })
+    return result
+
+
+def _find_scan_root(subdir):
+    """递归查找包含 stats.json 的目录，找到 scan_test_groups 可用的扫描入口"""
+    subdir = Path(subdir)
+    if not subdir.exists():
+        return None
+    groups = scan_test_groups(str(subdir))
+    if groups:
+        return str(subdir)
+    stats_parents = set()
+    for sf in subdir.rglob('stats.json'):
+        stats_parents.add(sf.parent.parent)
+    if len(stats_parents) == 1:
+        candidate = list(stats_parents)[0]
+        groups = scan_test_groups(str(candidate))
+        if groups:
+            return str(candidate)
+    for sf in subdir.rglob('stats.json'):
+        groups = scan_test_groups(str(sf.parent))
+        if groups:
+            return str(sf.parent)
+    return None
+
+
+def _auto_detect(base_dir):
+    """自动检测目录结构，返回检测结果
+
+    返回：
+    - type='single': 单设备场景
+    - type='compare': 双设备比对场景
+    - type='empty': 无有效数据
+    """
+    base = Path(base_dir)
+    if not base.exists():
+        return {'type': 'empty', 'error': '目录不存在'}
+
+    # 方案0: 输入目录本身包含 stats.json → 单组单设备（不向上扫描父级）
+    stats_json = base / 'stats.json'
+    if stats_json.exists():
+        # 手动构建 group，不扫描父级目录
+        tasks_config = extract_tasks_config(base / 'tasks.json')
+        concurrency = tasks_config.get('concurrency')
+        if concurrency is None:
+            test_script_rel = tasks_config.get('test_script', '')
+            if test_script_rel:
+                sp = base / test_script_rel
+                if not sp.exists():
+                    for levels in range(1, 10):
+                        p = base
+                        for _ in range(levels):
+                            p = p.parent
+                        sp = p / test_script_rel
+                        if sp.exists():
+                            break
+                if sp.exists():
+                    concurrency = extract_concurrency_from_script(sp)
+            if concurrency is None:
+                script_files = list(base.glob('test*.py')) + list(base.glob('*test*.py'))
+                for sf in script_files:
+                    concurrency = extract_concurrency_from_script(sf)
+                    if concurrency is not None:
+                        break
+        stats = extract_from_stats_json(stats_json)
+        errors_config = extract_errors_config(base / 'errors.json')
+        config = extract_test_config(base / 'apirunner.json')
+        config.update(tasks_config)
+        config['errors'] = errors_config
+        this_group = [{
+            'dir': base, 'name': base.name,
+            'stats': stats, 'concurrency': concurrency or 0,
+            'config': config,
+            '_has_tasks': bool(tasks_config),
+            '_has_scripts': concurrency is not None,
+        }]
+        info = detect_device_info(str(base))
+        device_info = _match_device_info(str(base), info)
+        return {
+            'type': 'single',
+            'groups': _build_preview(this_group),
+            'raw_groups': this_group,
+            'group_count': len(this_group),
+            'device_name': device_info.get('device', '') or base.parent.name,
+            'model_name': device_info.get('model', ''),
+            'device_info': device_info,
+            'base_dir': str(base),
+        }
+
+    # 方案1: 直接扫描当前目录
+    direct_groups = scan_test_groups(str(base))
+    if direct_groups:
+        info = detect_device_info(str(base))
+        device_info = _match_device_info(str(base), info)
+        return {
+            'type': 'single',
+            'groups': _build_preview(direct_groups),
+            'group_count': len(direct_groups),
+            'device_name': device_info.get('device', '') or base.name,
+            'model_name': device_info.get('model', ''),
+            'device_info': device_info,
+            'base_dir': str(base),
+        }
+
+    # 方案2: 递归查找 stats.json，按一级子目录分组
+    stats_dirs = []
+    for sf in base.rglob('stats.json'):
+        stats_dirs.append(sf.parent)
+    if not stats_dirs:
+        return {'type': 'empty', 'error': '未找到有效的测试数据（需要包含 stats.json 的子目录）'}
+
+    groups_by_parent = {}
+    for sd in stats_dirs:
+        try:
+            rel = sd.relative_to(base)
+            parent = rel.parts[0] if len(rel.parts) > 0 else ''
+        except ValueError:
+            parent = ''
+        if parent not in groups_by_parent:
+            groups_by_parent[parent] = []
+        groups_by_parent[parent].append(sd)
+
+    # 单个分组 → 单设备
+    if len(groups_by_parent) == 1:
+        scan_root = _find_scan_root(base)
+        if scan_root:
+            groups = scan_test_groups(scan_root)
+            if groups:
+                info = detect_device_info(scan_root)
+                device_info = _match_device_info(scan_root, info)
+                return {
+                    'type': 'single',
+                    'groups': _build_preview(groups),
+                    'group_count': len(groups),
+                    'device_name': device_info.get('device', '') or base.name,
+                    'model_name': device_info.get('model', ''),
+                    'device_info': device_info,
+                    'base_dir': str(base),
+                }
+
+    # 方案3: 多个分组 → 对比场景
+    compare_candidates = []
+    for parent_name in sorted(groups_by_parent.keys()):
+        if not parent_name:
+            continue
+        sub_path = base / parent_name
+        scan_root = _find_scan_root(sub_path)
+        if scan_root:
+            groups = scan_test_groups(scan_root)
+            if groups:
+                info = detect_device_info(scan_root)
+                device_info = _match_device_info(scan_root, info)
+                compare_candidates.append({
+                    'dir': scan_root, 'name': parent_name,
+                    'groups': _build_preview(groups), 'group_count': len(groups),
+                    'raw_groups': groups, 'device_info': device_info,
+                })
+
+    if len(compare_candidates) >= 2:
+        a, b = compare_candidates[0], compare_candidates[1]
+        return {
+            'type': 'compare',
+            'groups_a': a['groups'], 'groups_b': b['groups'],
+            'count_a': a['group_count'], 'count_b': b['group_count'],
+            'dir_a': a['dir'], 'dir_b': b['dir'],
+            'name_a': a['name'], 'name_b': b['name'],
+            'device_a': a['device_info'].get('device', '') or a['name'],
+            'device_b': b['device_info'].get('device', '') or b['name'],
+            'model_a': a['device_info'].get('model', ''),
+            'model_b': b['device_info'].get('model', ''),
+            'device_info_a': a['device_info'], 'device_info_b': b['device_info'],
+            'base_dir': str(base),
+        }
+
+    return {'type': 'empty', 'error': '未找到有效的测试数据（需要包含 stats.json 的子目录）'}
+
+
+def auto_scan_and_generate(base_dir, output_dir, formats=None, per_concurrency=False,
+                            device_name=None, model_name=None,
+                            device_a=None, device_b=None,
+                            model_a=None, model_b=None,
+                            dir_a=None, dir_b=None):
+    """一站式自动检测 + 生成报告（整合 app.py 的 auto-scan + auto-generate 逻辑）
+
+    参数:
+        base_dir: 测试数据根目录
+        output_dir: 输出目录
+        formats: 输出格式列表，默认 ['excel', 'html']
+        per_concurrency: 是否生成逐并发报告
+        device_name/model_name: 单设备模式覆盖
+        device_a/device_b/model_a/model_b: 比对模式覆盖
+        dir_a/dir_b: 比对模式指定目录
+
+    返回: {'ok': True/False, 'files': [...], 'type': '...', 'message': '...'}
+    """
+    if formats is None:
+        formats = ['excel', 'html']
+    os.makedirs(output_dir, exist_ok=True)
+    output_files = []
+
+    result = _auto_detect(base_dir)
+    if result.get('type') == 'empty':
+        return {'ok': False, 'error': result.get('error', '未找到有效数据')}
+
+    if result['type'] == 'compare':
+        d_a = dir_a or result.get('dir_a', '')
+        d_b = dir_b or result.get('dir_b', '')
+        dev_a = device_a or result.get('device_a', '设备A')
+        dev_b = device_b or result.get('device_b', '设备B')
+        mdl_a = model_a or result.get('model_a', '模型A')
+        mdl_b = model_b or result.get('model_b', '模型B')
+        groups_a = scan_test_groups(d_a)
+        groups_b = scan_test_groups(d_b)
+        info_a = detect_device_info(d_a)
+        info_b = detect_device_info(d_b)
+        if per_concurrency:
+            max_groups = max(len(groups_a), len(groups_b))
+            for idx in range(max_groups):
+                ga = [groups_a[idx]] if idx < len(groups_a) else []
+                gb = [groups_b[idx]] if idx < len(groups_b) else []
+                if not ga or not gb:
+                    continue
+                conc = ga[0]['concurrency']
+                if 'excel' in formats:
+                    out_xlsx = os.path.join(output_dir, f'DeepRunner_比对_{dev_a}_vs_{dev_b}_并发{conc}.xlsx')
+                    generate_compare_excel(ga, gb, dev_a, dev_b, mdl_a, mdl_b, out_xlsx)
+                if 'html' in formats:
+                    out_html = os.path.join(output_dir, f'deeprunner_比对_{dev_a}_vs_{dev_b}_并发{conc}.html')
+                    excel_url = f'/api/download/{os.path.basename(out_xlsx)}' if 'excel' in formats else None
+                    generate_compare_html(ga, gb, dev_a, dev_b, mdl_a, mdl_b, out_html,
+                                         device_info_a=info_a[0] if info_a else None,
+                                         device_info_b=info_b[0] if info_b else None,
+                                         excel_file=excel_url)
+                    output_files.append({'type': 'html', 'path': out_html, 'name': os.path.basename(out_html)})
+                if 'excel' in formats:
+                    output_files.append({'type': 'excel', 'path': out_xlsx, 'name': os.path.basename(out_xlsx)})
+        if 'excel' in formats:
+            out_xlsx = os.path.join(output_dir, f'DeepRunner_推理性能比对报告_{dev_a}_vs_{dev_b}.xlsx')
+            generate_compare_excel(groups_a, groups_b, dev_a, dev_b, mdl_a, mdl_b, out_xlsx)
+        if 'html' in formats:
+            out_html = os.path.join(output_dir, f'deeprunner_推理性能比对报告_{dev_a}_vs_{dev_b}.html')
+            excel_url = f'/api/download/{os.path.basename(out_xlsx)}' if 'excel' in formats else None
+            generate_compare_html(groups_a, groups_b, dev_a, dev_b, mdl_a, mdl_b, out_html,
+                                 device_info_a=info_a[0] if info_a else None,
+                                 device_info_b=info_b[0] if info_b else None,
+                                 excel_file=excel_url)
+            output_files.append({'type': 'html', 'path': out_html, 'name': os.path.basename(out_html)})
+        if 'excel' in formats:
+            output_files.append({'type': 'excel', 'path': out_xlsx, 'name': os.path.basename(out_xlsx)})
+        return {'ok': True, 'type': 'compare', 'files': output_files,
+                'message': f'比对报告生成完成：{dev_a} vs {dev_b}，共 {len(output_files)} 个文件'}
+
+    else:
+        dev_name = device_name or result.get('device_name', '未知设备')
+        mdl_name = model_name or result.get('model_name', '未知模型')
+        # 优先使用 _auto_detect 返回的 raw_groups（方案0：单webrunner目录）
+        groups = result.get('raw_groups', None)
+        if groups is None:
+            scan_dir = result.get('base_dir', base_dir)
+            groups = scan_test_groups(scan_dir)
+        if not groups:
+            scan_root = _find_scan_root(scan_dir)
+            if scan_root:
+                groups = scan_test_groups(scan_root)
+        if not groups:
+            stats_path = os.path.join(scan_dir, 'stats.json')
+            if os.path.isfile(stats_path):
+                stats = extract_from_stats_json(stats_path)
+                conc = extract_concurrency_from_script(
+                    os.path.join(scan_dir, 'testGB10.py')) or \
+                    extract_concurrency_from_script(
+                    os.path.join(scan_dir, 'test.py')) or 0
+                groups = [{'dir': Path(scan_dir), 'name': os.path.basename(scan_dir),
+                           'stats': stats, 'concurrency': conc, 'config': {}}]
+        # 优先使用 _auto_detect 已匹配的 device_info（经过 _match_device_info 过滤）
+        info = result.get('device_info') or detect_device_info(scan_dir)
+        if isinstance(info, dict):
+            info = [info]
+        if info and not info[0].get('accelerator') and not info[0].get('cpu_info'):
+            # 兜底过滤：重新匹配优先选有完整信息的条目
+            all_info = detect_device_info(scan_dir)
+            info = [detect_device_info.__globals__['_match_device_info'](scan_dir, all_info)] if all_info else info
+        if per_concurrency:
+            for g in groups:
+                conc = g['concurrency']
+                if 'html' in formats:
+                    out = os.path.join(output_dir, f'deeprunner_{dev_name}_并发{conc}.html')
+                    generate_single_html([g], dev_name, mdl_name, out,
+                                        device_info=info[0] if info else None)
+                    output_files.append({'type': 'html', 'path': out, 'name': os.path.basename(out)})
+                if 'excel' in formats:
+                    out = os.path.join(output_dir, f'DeepRunner_{dev_name}_并发{conc}.xlsx')
+                    generate_single_excel([g], dev_name, mdl_name, out,
+                                         device_info=info[0] if info else None)
+                    output_files.append({'type': 'excel', 'path': out, 'name': os.path.basename(out)})
+        if 'html' in formats:
+            out = os.path.join(output_dir, f'deeprunner_{dev_name}测评报告.html')
+            generate_single_html(groups, dev_name, mdl_name, out,
+                                device_info=info[0] if info else None)
+            output_files.append({'type': 'html', 'path': out, 'name': os.path.basename(out)})
+        if 'excel' in formats:
+            out = os.path.join(output_dir, f'DeepRunner_推理性能测试报告_{dev_name}.xlsx')
+            generate_single_excel(groups, dev_name, mdl_name, out,
+                                 device_info=info[0] if info else None)
+            output_files.append({'type': 'excel', 'path': out, 'name': os.path.basename(out)})
+        return {'ok': True, 'type': 'single', 'files': output_files,
+                'message': f'单设备报告生成完成：{dev_name}，共 {len(output_files)} 个文件'}
+
+
+def discover_devices_flat(root_dir, with_preview=False):
+    """扁平扫描：遍历一级子目录，发现所有设备（不含报告生成）
+
+    参数:
+        root_dir: 根目录，自动扫描一级子目录
+        with_preview: 是否包含 _build_preview 预览数据
+
+    返回: list[dict] — 每个设备包含 device/model/accelerator/cpu_info/memory/
+          quantization/framework/api_endpoint/network_mode/groups/group_count/issues
+    """
+    root = Path(root_dir)
+    devices = []
+    seen = set()
+    nc = {}
+    for item in sorted(root.iterdir()):
+        if not item.is_dir() or item.name in seen:
+            continue
+        seen.add(item.name)
+        groups = scan_test_groups(str(item))
+        if not groups:
+            sr = _find_scan_root(str(item))
+            if sr:
+                groups = scan_test_groups(sr)
+        if not groups:
+            continue
+        info = detect_device_info(str(item))
+        di = _match_device_info(str(item), info)
+        dn = di.get('device', '') or item.name
+        if dn in nc:
+            nc[dn] += 1
+            dn = f"{dn}_{item.name}"
+        else:
+            nc[dn] = 0
+        devices.append({
+            'device': dn,
+            'model': di.get('model', ''),
+            'accelerator': di.get('accelerator', ''),
+            'cpu_info': di.get('cpu_info', ''),
+            'memory': di.get('memory', ''),
+            'quantization': di.get('quantization', ''),
+            'framework': di.get('framework', ''),
+            'api_endpoint': di.get('api_endpoint', ''),
+            'network_mode': di.get('network_mode', ''),
+            'dir': item,
+            'groups': _build_preview(groups) if with_preview else groups,
+            'group_count': len(groups),
+            'issues': validate_groups(groups, item.name),
+        })
+    return devices
+
+
+def discover_and_generate(root_dir, output_dir, formats=None):
+    """批量发现 + 生成报告
+
+    参数:
+        root_dir: 根目录，自动扫描一级子目录发现所有设备
+        output_dir: 输出目录
+        formats: 输出格式列表，默认 ['excel', 'html']
+
+    返回: {'ok': True, 'devices': [...], 'files': [...], 'message': '...'}
+    """
+    if formats is None:
+        formats = ['excel', 'html']
+    os.makedirs(output_dir, exist_ok=True)
+    output_files = []
+
+    devices = discover_devices_flat(root_dir, with_preview=False)
+    for dev in devices:
+        dev_name = dev['device']
+        mdl_name = dev.get('model', '')
+        groups = dev['groups']
+        device_info = {
+            'device': dev_name,
+            'model': mdl_name,
+            'accelerator': dev.get('accelerator', ''),
+            'cpu_info': dev.get('cpu_info', ''),
+            'memory': dev.get('memory', ''),
+            'quantization': dev.get('quantization', ''),
+            'framework': dev.get('framework', ''),
+            'api_endpoint': dev.get('api_endpoint', ''),
+            'network_mode': dev.get('network_mode', ''),
+        }
+        if 'html' in formats:
+            out = os.path.join(output_dir, f'deeprunner_{dev_name}测评报告.html')
+            generate_single_html(groups, dev_name, mdl_name, out, device_info=device_info)
+            output_files.append({'type': 'html', 'path': out, 'name': os.path.basename(out)})
+        if 'excel' in formats:
+            out = os.path.join(output_dir, f'DeepRunner_推理性能测试报告_{dev_name}.xlsx')
+            generate_single_excel(groups, dev_name, mdl_name, out, device_info=device_info)
+            output_files.append({'type': 'excel', 'path': out, 'name': os.path.basename(out)})
+
+    return {'ok': True, 'devices': devices, 'files': output_files,
+            'message': f'共发现 {len(devices)} 台设备，生成 {len(output_files)} 个报告文件'}
+
+

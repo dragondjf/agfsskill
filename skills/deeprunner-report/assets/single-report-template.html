@@ -168,12 +168,28 @@
     <!-- ==================== 五、可视化曲线 ==================== -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div class="glass-panel p-4">
-            <div class="flex items-center gap-2 mb-3"><i class="fas fa-chart-line text-indigo-500"></i><span class="font-medium">并发-吞吐曲线</span></div>
-            <canvas id="throughputChart" height="200"></canvas>
+            <div class="flex items-center gap-2 mb-3"><i class="fas fa-clock text-amber-500"></i><span class="font-medium">平均延迟随并发变化</span></div>
+            <canvas id="latencyChart" height="220"></canvas>
         </div>
         <div class="glass-panel p-4">
-            <div class="flex items-center gap-2 mb-3"><i class="fas fa-hourglass-half text-rose-500"></i><span class="font-medium">时延指标随并发变化</span></div>
-            <canvas id="latencyChart" height="200"></canvas>
+            <div class="flex items-center gap-2 mb-3"><i class="fas fa-tachometer-alt text-blue-500"></i><span class="font-medium">吞吐量随并发变化 (tokens/s)</span></div>
+            <canvas id="throughputChart" height="220"></canvas>
+        </div>
+        <div class="glass-panel p-4">
+            <div class="flex items-center gap-2 mb-3"><i class="fas fa-hourglass-half text-cyan-500"></i><span class="font-medium">TTFT (首Token时延) 随并发变化</span></div>
+            <canvas id="ttftChart" height="220"></canvas>
+        </div>
+        <div class="glass-panel p-4">
+            <div class="flex items-center gap-2 mb-3"><i class="fas fa-bolt text-purple-500"></i><span class="font-medium">QPS (每秒请求数) 随并发变化</span></div>
+            <canvas id="qpsChart" height="220"></canvas>
+        </div>
+        <div class="glass-panel p-4">
+            <div class="flex items-center gap-2 mb-3"><i class="fas fa-file-alt text-indigo-500"></i><span class="font-medium">输出Token数随并发变化</span></div>
+            <canvas id="outputTokChart" height="220"></canvas>
+        </div>
+        <div class="glass-panel p-4">
+            <div class="flex items-center gap-2 mb-3"><i class="fas fa-list-ol text-green-500"></i><span class="font-medium">完成请求数随并发变化</span></div>
+            <canvas id="requestsChart" height="220"></canvas>
         </div>
     </div>
 
@@ -355,23 +371,27 @@ function initCharts(theme) {
     if (cd && cd.concurrency && cd.concurrency.length) {
         const isSinglePoint = cd.concurrency.length === 1;
         const chartType = isSinglePoint ? 'bar' : 'line';
-        // 单点数据用柱状图，多点用折线图
-        charts.throughput = new Chart(document.getElementById('throughputChart'), {
+        const alphaColor = (c, a) => { const m = c.match(/rgba?\(([^)]+)\)/); return m ? 'rgba(' + m[1].replace(/,\s*[\d.]+\s*$/, ', ' + a) + ')' : c; };
+        const mkLine = (id, label, data, color, yTitle) => new Chart(document.getElementById(id), {
             type: chartType, data: { labels: cd.concurrency, datasets: [
-                { label: '输出吞吐 (tok/s)', data: cd.throughput,
-                  borderColor: '#3b82f6', backgroundColor: isSinglePoint ? 'rgba(59,130,246,0.6)' : 'rgba(59,130,246,0.1)',
+                { label: label, data: data,
+                  borderColor: color, backgroundColor: isSinglePoint ? alphaColor(color, 0.6) : alphaColor(color, 0.1),
                   borderWidth: isSinglePoint ? 1 : undefined,
                   fill: !isSinglePoint, tension: isSinglePoint ? 0 : 0.3, pointRadius: isSinglePoint ? 0 : 4 }
-            ]}, options: opts(c, '吞吐 (tok/s)', '并发数')
+            ]}, options: opts(c, yTitle, '并发数')
         });
-        charts.latency = new Chart(document.getElementById('latencyChart'), {
-            type: chartType, data: { labels: cd.concurrency, datasets: [
-                { label: '平均延迟 (s)', data: cd.latency,
-                  borderColor: '#f97316', backgroundColor: isSinglePoint ? 'rgba(249,115,22,0.6)' : 'rgba(249,115,22,0.1)',
-                  borderWidth: isSinglePoint ? 1 : undefined,
-                  fill: !isSinglePoint, tension: isSinglePoint ? 0 : 0.3, pointRadius: isSinglePoint ? 0 : 4 }
-            ]}, options: opts(c, '延迟 (秒)', '并发数')
+        const mkBar = (id, label, data, color, yTitle) => new Chart(document.getElementById(id), {
+            type: 'bar', data: { labels: cd.concurrency, datasets: [
+                { label: label, data: data,
+                  backgroundColor: alphaColor(color, 0.6), borderColor: color, borderWidth: 1 }
+            ]}, options: opts(c, yTitle, '并发数')
         });
+        charts.latency     = mkLine('latencyChart',     '平均延迟 (s)',           cd.latency,     'rgba(249,115,22,1)', '延迟 (秒)');
+        charts.throughput  = mkLine('throughputChart',  '输出吞吐 (tok/s)',       cd.throughput,  'rgba(59,130,246,1)', '吞吐 (tok/s)');
+        charts.ttft        = mkLine('ttftChart',        'TTFT (s)',              cd.ttft || [],  'rgba(34,211,238,1)', 'TTFT (秒)');
+        charts.qps         = mkLine('qpsChart',         'QPS (req/s)',            cd.qps || [],   'rgba(168,85,247,1)', 'QPS (req/s)');
+        charts.outputTok   = mkBar ('outputTokChart',   '输出Token数',            cd.outputTok || [], 'rgba(99,102,241,1)', '输出Token数');
+        charts.requests    = mkBar ('requestsChart',    '完成请求数',             cd.requests || [],  'rgba(52,211,153,1)', '请求数');
     }
 }
 

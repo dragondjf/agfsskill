@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>DeepRunner 6.0 报告生成器</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; min-height: 100vh; margin: 0; padding: 0; }
+        body { background: #f1f5f9; color: #0f172a; }
+        .glass-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(100, 116, 139, 0.2); box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
+        .glass-panel { background: rgba(255, 255, 255, 0.7); border: 1px solid rgba(100, 116, 139, 0.15); }
+        .glass-input { background: rgba(255,255,255,0.6); border: 1px solid rgba(100,116,139,0.2); color: #0f172a; border-radius: 10px; padding: 10px 14px; width: 100%; outline: none; }
+        .glass-input:focus { border-color: rgba(59,130,246,0.5); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .glass-input::placeholder { color: #94a3b8; }
+        .bg-muted { background: rgba(0,0,0,0.03); }
+        .border-subtle { border-color: rgba(100,116,139,0.15); }
+        code { background: #f1f5f9; color: #1e293b; }
+
+        body[data-theme="dark"] { background: linear-gradient(145deg, #0a0f1c 0%, #0c1222 100%); color: #e2e8f0; }
+        body[data-theme="dark"] .glass-card { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(59, 130, 246, 0.3); box-shadow: none; }
+        body[data-theme="dark"] .glass-panel { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(148, 163, 184, 0.2); }
+        body[data-theme="dark"] .glass-input { background: rgba(15,23,42,0.5); border: 1px solid rgba(59,130,246,0.2); color: #e2e8f0; }
+        body[data-theme="dark"] .glass-input:focus { border-color: rgba(59,130,246,0.6); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+        body[data-theme="dark"] .glass-input::placeholder { color: #475569; }
+        body[data-theme="dark"] .bg-muted { background: rgba(0,0,0,0.2); }
+        body[data-theme="dark"] .border-subtle { border-color: rgba(148,163,184,0.1); }
+        body[data-theme="dark"] code { background: #0f172a; color: #cbd5e1; }
+
+        .glass-card, .glass-panel { border-radius: 16px; }
+        .glass-panel { border-radius: 12px; }
+        .hover-grow { transition: transform 0.2s ease, box-shadow 0.2s; }
+        .hover-grow:hover { transform: translateY(-3px); box-shadow: 0 20px 25px -12px rgba(0,0,0,0.15); }
+
+        .btn-primary { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; border: none; border-radius: 10px; padding: 10px 24px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(59,130,246,0.3); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .btn-success { background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; border-radius: 10px; padding: 10px 24px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif; }
+        .btn-success:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(16,185,129,0.3); }
+
+        .btn-ghost { background: transparent; border: 1px solid rgba(100,116,139,0.2); color: #64748b; border-radius: 10px; padding: 8px 16px; cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif; }
+        .btn-ghost:hover { background: rgba(100,116,139,0.1); color: #0f172a; }
+        body[data-theme="dark"] .btn-ghost { color: #94a3b8; border-color: rgba(148,163,184,0.2); }
+        body[data-theme="dark"] .btn-ghost:hover { background: rgba(148,163,184,0.1); color: #e2e8f0; }
+
+        .btn-discover { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff; border: none; border-radius: 10px; padding: 10px 24px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif; }
+        .btn-discover:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(139,92,246,0.3); }
+        .btn-discover:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+        .badge-green { background: #d1fae5; color: #065f46; border: 1px solid #10b981; }
+        .badge-blue { background: #dbeafe; color: #1d4ed8; border: 1px solid #3b82f6; }
+        .badge-amber { background: #fed7aa; color: #92400e; border: 1px solid #f59e0b; }
+        .badge-purple { background: #ede9fe; color: #6d28d9; border: 1px solid #8b5cf6; }
+        .badge-cyan { background: #cffafe; color: #0e7490; border: 1px solid #06b6d4; }
+        body[data-theme="dark"] .badge-green { background: #10b98120; color: #34d399; border-color: #10b98160; }
+        body[data-theme="dark"] .badge-blue { background: #3b82f620; color: #60a5fa; border-color: #3b82f660; }
+        body[data-theme="dark"] .badge-amber { background: #f59e0b20; color: #fbbf24; border-color: #f59e0b60; }
+        body[data-theme="dark"] .badge-purple { background: #8b5cf620; color: #a78bfa; border-color: #8b5cf660; }
+        body[data-theme="dark"] .badge-cyan { background: #06b6d420; color: #22d3ee; border-color: #06b6d460; }
+
+        .pulse-dot { width: 8px; height: 8px; background: #34d399; border-radius: 50%; display: inline-block; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        .progress-bar { height: 4px; background: rgba(0,0,0,0.08); border-radius: 2px; overflow: hidden; }
+        body[data-theme="dark"] .progress-bar { background: rgba(30,41,59,0.8); }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #06b6d4); border-radius: 2px; transition: width 0.5s ease; }
+
+        .fade-in { animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .stat-value { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+        .stat-label { font-size: 0.75rem; color: #64748b; }
+        .text-muted { color: #64748b; }
+        body[data-theme="dark"] .text-muted { color: #94a3b8; }
+        body[data-theme="dark"] .stat-label { color: #94a3b8; }
+
+        .table-container { overflow-x: auto; border-radius: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { padding: 10px 12px; text-align: left; font-weight: 600; white-space: nowrap; position: sticky; top: 0; background: rgba(255,255,255,0.5); color: #475569; border-bottom: 1px solid rgba(100,116,139,0.15); }
+        td { padding: 8px 12px; border-bottom: 1px solid rgba(100,116,139,0.08); }
+        tr:hover td { background: rgba(59,130,246,0.04); }
+        body[data-theme="dark"] th { background: rgba(15,23,42,0.6); color: #94a3b8; border-color: rgba(148,163,184,0.1); }
+        body[data-theme="dark"] td { border-color: rgba(148,163,184,0.06); }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.3); border-radius: 3px; }
+
+        .toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999; padding: 14px 24px; border-radius: 12px; font-size: 0.9rem; font-weight: 500; display: none; animation: slideUp 0.3s ease; max-width: 420px; backdrop-filter: blur(12px); }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .toast-success { background: #059669; color: #fff; }
+        .toast-error { background: #dc2626; color: #fff; }
+        .toast-info { background: #2563eb; color: #fff; }
+
+        .file-card { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 12px; background: rgba(255,255,255,0.7); border: 1px solid rgba(100,116,139,0.15); }
+        body[data-theme="dark"] .file-card { background: rgba(30,41,59,0.5); border-color: rgba(148,163,184,0.15); }
+
+        .tab-btn { padding: 8px 20px; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; font-family: 'Inter', sans-serif; font-size: 0.9rem; transition: all 0.2s; }
+        .tab-btn.active { background: #3b82f6; color: #fff; }
+        .tab-btn:not(.active) { background: transparent; color: #64748b; }
+        .tab-btn:not(.active):hover { background: rgba(59,130,246,0.08); }
+        body[data-theme="dark"] .tab-btn:not(.active) { color: #94a3b8; }
+
+        .device-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; }
+        .device-tag-a { background: #dbeafe; color: #1d4ed8; border: 1px solid #3b82f660; }
+        .device-tag-b { background: #ede9fe; color: #6d28d9; border: 1px solid #8b5cf660; }
+        body[data-theme="dark"] .device-tag-a { background: #3b82f620; color: #60a5fa; }
+        body[data-theme="dark"] .device-tag-b { background: #8b5cf620; color: #a78bfa; }
+
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+        .info-item { padding: 8px 12px; border-radius: 8px; background: rgba(0,0,0,0.02); }
+        body[data-theme="dark"] .info-item { background: rgba(0,0,0,0.15); }
+        .info-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+        body[data-theme="dark"] .info-label { color: #94a3b8; }
+        .info-value { font-size: 0.85rem; font-weight: 500; margin-top: 2px; word-break: break-all; }
+    </style>
+</head>
+<body>
+<div class="max-w-6xl mx-auto px-4 py-6">
+
+    <!-- 主题切换 -->
+    <div class="fixed top-6 right-6 z-50">
+        <button id="themeToggle" class="glass-card rounded-full p-3 shadow-lg backdrop-blur-md w-12 h-12 flex items-center justify-center text-xl cursor-pointer" style="border-radius:50%">
+            <i class="fas fa-sun" id="sunIcon"></i>
+            <i class="fas fa-moon" id="moonIcon" style="display:none"></i>
+        </button>
+    </div>
+
+    <!-- 标题区 -->
+    <div class="glass-card p-6 mb-6">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-xl shadow-lg" style="box-shadow:0 8px 24px rgba(59,130,246,0.25)">
+                <i class="fas fa-chart-line text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight">DeepRunner 6.0 报告生成器</h1>
+                <div class="flex items-center gap-3 mt-1 text-sm text-muted">
+                    <span><i class="far fa-calendar-alt mr-1"></i><span id="currentTime"></span></span>
+                    <span class="badge badge-green"><i class="fas fa-circle text-[6px] mr-1"></i>就绪</span>
+                    <span class="badge badge-purple">v2 增强版</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模式切换 -->
+    <div class="glass-card p-4 mb-6">
+        <div class="flex items-center gap-3">
+            <button class="tab-btn active" id="modeScan" onclick="switchMode('scan')">
+                <i class="fas fa-search mr-1"></i> 单设备/比对
+            </button>
+            <button class="tab-btn" id="modeDiscover" onclick="switchMode('discover')">
+                <i class="fas fa-sitemap mr-1"></i> 批量发现
+            </button>
+        </div>
+    </div>
+
+    <!-- 模式1: 单设备/比对 -->
+    <div id="panelScan">
+        <div class="glass-card p-6 mb-6">
+            <div class="flex items-center gap-3 mb-4">
+                <i class="fas fa-folder-open text-emerald-500 text-lg"></i>
+                <span class="font-semibold text-lg">测试数据目录</span>
+                <span class="text-xs text-muted ml-1">选择包含 stats.json 子目录的压测报告目录</span>
+            </div>
+            <div class="flex gap-3">
+                <div class="flex-1 relative">
+                    <i class="fas fa-folder absolute left-3.5 top-1/2 -translate-y-1/2 text-muted text-sm"></i>
+                    <input type="text" id="baseDir" class="glass-input pl-9" placeholder="例如: D:\测试报告\HTML报告" value="">
+                </div>
+                <button class="btn-ghost px-4" onclick="browseDir()"><i class="fas fa-folder-open mr-1"></i> 浏览</button>
+                <button class="btn-primary" id="scanBtn" onclick="autoScan()">
+                    <i class="fas fa-search mr-1"></i> 扫描
+                </button>
+            </div>
+        </div>
+
+        <!-- 扫描结果 -->
+        <div id="resultArea" style="display:none">
+            <!-- 场景识别横幅 -->
+            <div class="glass-card p-5 mb-6 fade-in" id="sceneBanner">
+                <div class="flex items-center justify-between flex-wrap gap-3">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-microchip text-2xl" id="sceneIcon"></i>
+                        <div>
+                            <div class="font-semibold text-lg" id="sceneTitle">加载中...</div>
+                            <div class="text-sm text-muted" id="sceneDesc">正在识别测试场景</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="badge badge-blue" id="groupBadge">0 组</span>
+                        <span class="badge badge-cyan" id="sceneTypeBadge">单设备</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 设备档案 -->
+            <div class="glass-card p-5 mb-6 fade-in" id="deviceInfoCard" style="display:none">
+                <div class="flex items-center gap-3 mb-4">
+                    <i class="fas fa-server text-purple-500"></i>
+                    <span class="font-semibold">设备档案</span>
+                    <span class="text-xs text-muted">从 device-*.md 自动检测</span>
+                </div>
+                <div class="info-grid" id="deviceInfoGrid"></div>
+            </div>
+
+            <!-- 设备/模型参数 -->
+            <div class="glass-card p-5 mb-6 fade-in" id="paramsCard">
+                <div class="flex items-center gap-3 mb-4">
+                    <i class="fas fa-sliders-h text-blue-500"></i>
+                    <span class="font-semibold">报告参数</span>
+                    <span class="text-xs text-muted">已自动识别，可按需调整</span>
+                </div>
+                <div id="paramsContent"></div>
+            </div>
+
+            <!-- 数据预览 -->
+            <div class="glass-card p-5 mb-6 fade-in">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-table text-blue-500"></i>
+                        <span class="font-semibold">测试数据预览</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="flex items-center gap-1.5 text-sm cursor-pointer" title="为每个并发数单独生成报告">
+                            <input type="checkbox" id="chkPerConcurrency" class="accent-blue-500"> 逐并发
+                        </label>
+                        <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+                            <input type="checkbox" checked id="fmtExcel" class="accent-blue-500"> Excel
+                        </label>
+                        <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+                            <input type="checkbox" checked id="fmtHtml" class="accent-blue-500"> HTML
+                        </label>
+                    </div>
+                </div>
+                <div class="table-container max-h-[400px] overflow-y-auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>测试组</th>
+                                <th>并发</th>
+                                <th>请求数</th>
+                                <th>成功率</th>
+                                <th>平均延迟</th>
+                                <th>吞吐峰值</th>
+                                <th>QPS 峰值</th>
+                                <th>TTFT</th>
+                                <th>TPOT</th>
+                                <th>输入Tok</th>
+                                <th>输出Tok</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 快速统计 -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6 fade-in" id="statsGrid"></div>
+
+            <!-- 生成按钮 -->
+            <div class="glass-card p-5 mb-6 fade-in">
+                <div class="flex items-center justify-between flex-wrap gap-4">
+                    <div>
+                        <div class="font-semibold text-lg">生成报告</div>
+                        <div class="text-sm text-muted mt-0.5">系统将自动生成所选格式的测评报告</div>
+                    </div>
+                    <button class="btn-success px-8 py-3 text-base" id="generateBtn" onclick="autoGenerate()">
+                        <i class="fas fa-rocket mr-2"></i> 一键生成
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模式2: 批量发现 -->
+    <div id="panelDiscover" style="display:none">
+        <div class="glass-card p-6 mb-6">
+            <div class="flex items-center gap-3 mb-4">
+                <i class="fas fa-sitemap text-purple-500 text-lg"></i>
+                <span class="font-semibold text-lg">批量发现模式</span>
+                <span class="text-xs text-muted ml-1">自动扫描根目录下所有设备，批量生成报告</span>
+            </div>
+            <div class="flex gap-3">
+                <div class="flex-1 relative">
+                    <i class="fas fa-folder absolute left-3.5 top-1/2 -translate-y-1/2 text-muted text-sm"></i>
+                    <input type="text" id="discoverDir" class="glass-input pl-9" placeholder="例如: D:\测试报告" value="">
+                </div>
+                <button class="btn-ghost px-4" onclick="browseDiscoverDir()"><i class="fas fa-folder-open mr-1"></i> 浏览</button>
+                <button class="btn-discover" id="discoverBtn" onclick="discoverDevices()">
+                    <i class="fas fa-sitemap mr-1"></i> 发现设备
+                </button>
+            </div>
+        </div>
+
+        <div id="discoverResult" style="display:none">
+            <div class="glass-card p-5 mb-6 fade-in">
+                <div class="flex items-center gap-3 mb-4">
+                    <i class="fas fa-microchip text-purple-500"></i>
+                    <span class="font-semibold">发现的设备</span>
+                    <span class="badge badge-purple" id="deviceCountBadge">0 台</span>
+                </div>
+                <div id="deviceList"></div>
+            </div>
+
+            <div class="glass-card p-5 mb-6 fade-in">
+                <div class="flex items-center justify-between flex-wrap gap-4">
+                    <div>
+                        <div class="font-semibold text-lg">批量生成报告</div>
+                        <div class="text-sm text-muted mt-0.5">为所有发现的设备生成测评报告</div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+                            <input type="checkbox" checked id="dFmtExcel" class="accent-blue-500"> Excel
+                        </label>
+                        <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+                            <input type="checkbox" checked id="dFmtHtml" class="accent-blue-500"> HTML
+                        </label>
+                        <button class="btn-success px-8 py-3 text-base" id="discoverGenerateBtn" onclick="discoverGenerate()">
+                            <i class="fas fa-rocket mr-2"></i> 批量生成
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 进度 -->
+    <div id="progressArea" style="display:none">
+        <div class="glass-card p-6 mb-6">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="pulse-dot"></span>
+                <span class="font-semibold text-lg" id="progressTitle">正在生成报告...</span>
+            </div>
+            <div class="progress-bar mb-3">
+                <div class="progress-fill" id="progressFill" style="width:0%"></div>
+            </div>
+            <div class="flex justify-between text-sm text-muted">
+                <span id="progressMsg">初始化...</span>
+                <span id="progressPct">0%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 结果 -->
+    <div id="doneArea" style="display:none">
+        <div class="glass-card p-6 mb-6">
+            <div class="flex items-center gap-3 mb-5">
+                <i class="fas fa-check-circle text-emerald-500 text-2xl"></i>
+                <span class="font-semibold text-lg">报告生成完成</span>
+                <span class="text-sm text-muted" id="doneFileCount"></span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="doneFiles"></div>
+            <div class="mt-5">
+                <button class="btn-ghost" onclick="resetAll()">
+                    <i class="fas fa-redo mr-1"></i> 生成新报告
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <div class="text-center text-xs text-muted mt-8 pb-4 pt-4 border-t border-subtle">
+        DeepRunner 6.0 报告生成器 &middot; v2 增强版 &middot; 数据本地处理，不上传云端
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── 状态 ──
+let scanResult = null;
+let discoverResult = null;
+let taskTimer = null;
+let currentMode = 'scan';
+
+// ── 时钟 ──
+function updateClock() {
+    const now = new Date();
+    document.getElementById('currentTime').textContent = now.toLocaleString('zh-CN');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── 主题 ──
+const initTheme = localStorage.getItem('theme') || 'light';
+document.body.setAttribute('data-theme', initTheme);
+document.getElementById('sunIcon').style.display = initTheme === 'dark' ? '' : 'none';
+document.getElementById('moonIcon').style.display = initTheme === 'light' ? '' : 'none';
+document.getElementById('themeToggle').addEventListener('click', () => {
+    const t = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.body.setAttribute('data-theme', t);
+    localStorage.setItem('theme', t);
+    document.getElementById('sunIcon').style.display = t === 'dark' ? '' : 'none';
+    document.getElementById('moonIcon').style.display = t === 'light' ? '' : 'none';
+});
+
+// ── 模式切换 ──
+function switchMode(mode) {
+    currentMode = mode;
+    document.getElementById('panelScan').style.display = mode === 'scan' ? '' : 'none';
+    document.getElementById('panelDiscover').style.display = mode === 'discover' ? '' : 'none';
+    document.getElementById('modeScan').className = `tab-btn ${mode === 'scan' ? 'active' : ''}`;
+    document.getElementById('modeDiscover').className = `tab-btn ${mode === 'discover' ? 'active' : ''}`;
+}
+
+// ── 浏览目录 ──
+function browseDir() {
+    const v = prompt('请输入目录路径：', document.getElementById('baseDir').value || '');
+    if (v) document.getElementById('baseDir').value = v;
+}
+function browseDiscoverDir() {
+    const v = prompt('请输入根目录路径：', document.getElementById('discoverDir').value || '');
+    if (v) document.getElementById('discoverDir').value = v;
+}
+
+// ── Toast ──
+function showToast(msg, type = 'info') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = `toast toast-${type}`;
+    el.style.display = '';
+    setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+// ── 自动扫描 ──
+async function autoScan() {
+    const path = document.getElementById('baseDir').value.trim();
+    if (!path) { showToast('请输入测试数据目录路径', 'error'); return; }
+
+    const btn = document.getElementById('scanBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> 扫描中...';
+
+    try {
+        const resp = await fetch('/api/auto-scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path })
+        });
+        const data = await resp.json();
+        if (!data.ok) { showToast(data.error || '扫描失败', 'error'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-search mr-1"></i> 扫描'; return; }
+
+        scanResult = data;
+        renderScanResult(data);
+        document.getElementById('resultArea').style.display = '';
+        document.getElementById('resultArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showToast(`扫描完成：${data.type === 'compare' ? '双设备比对场景' : '单设备测评场景'}`, 'success');
+    } catch (e) {
+        showToast('网络错误: ' + e.message, 'error');
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-search mr-1"></i> 扫描';
+}
+
+// ── 渲染扫描结果 ──
+function renderScanResult(data) {
+    // 场景横幅
+    if (data.type === 'compare') {
+        document.getElementById('sceneIcon').className = 'fas fa-balance-scale text-2xl text-purple-500';
+        document.getElementById('sceneTitle').textContent = '双设备比对场景';
+        const dirA = (data.dir_a || '').split(/[\\\\\\/]/).pop();
+        const dirB = (data.dir_b || '').split(/[\\\\\\/]/).pop();
+        document.getElementById('sceneDesc').textContent = `检测到 ${dirA} vs ${dirB} 两组测试数据`;
+        document.getElementById('groupBadge').textContent = `A:${data.count_a} B:${data.count_b}`;
+        document.getElementById('sceneTypeBadge').textContent = '双设备比对';
+        document.getElementById('sceneTypeBadge').className = 'badge badge-purple';
+    } else {
+        document.getElementById('sceneIcon').className = 'fas fa-microchip text-2xl text-cyan-500';
+        document.getElementById('sceneTitle').textContent = '单设备测评场景';
+        document.getElementById('sceneDesc').textContent = `检测到 ${data.group_count} 组测试数据`;
+        document.getElementById('groupBadge').textContent = `${data.group_count} 组`;
+        document.getElementById('sceneTypeBadge').textContent = '单设备测评';
+        document.getElementById('sceneTypeBadge').className = 'badge badge-cyan';
+    }
+
+    // 设备档案
+    renderDeviceInfo(data);
+
+    // 参数卡片
+    renderParams(data);
+
+    // 数据表格
+    const rows = data.type === 'compare'
+        ? [...data.groups_a.map(g => ({...g, _side: 'A'})), ...data.groups_b.map(g => ({...g, _side: 'B'}))]
+        : data.groups;
+
+    const tbody = document.getElementById('dataTableBody');
+    tbody.innerHTML = rows.map((g, i) => {
+        const sideBadge = g._side
+            ? `<span class="device-tag device-tag-${g._side.toLowerCase()}" style="font-size:0.65rem;padding:1px 6px">${g._side}</span>`
+            : '';
+        return `<tr>
+            <td class="text-muted">${i+1}</td>
+            <td class="font-mono text-xs max-w-[160px] truncate" title="${g.name}">${sideBadge} ${g.name}</td>
+            <td><span class="badge badge-blue" style="font-size:0.7rem">${g.concurrency}</span></td>
+            <td>${g.total_requests}</td>
+            <td><span class="badge ${g.success_rate >= 99 ? 'badge-green' : 'badge-amber'}">${g.success_rate}%</span></td>
+            <td class="font-mono">${g.avg_latency}s</td>
+            <td class="font-mono">${g.throughput_max}</td>
+            <td class="font-mono">${g.max_qps}</td>
+            <td class="font-mono">${g.avg_ttft}s</td>
+            <td class="font-mono">${g.avg_tpot}s</td>
+            <td class="font-mono">${g.avg_input_tokens}</td>
+            <td class="font-mono">${g.min_output_tokens}~${g.max_output_tokens}</td>
+        </tr>`;
+    }).join('');
+
+    // 统计卡片
+    renderStats(data);
+}
+
+// ── 渲染设备档案 ──
+function renderDeviceInfo(data) {
+    const card = document.getElementById('deviceInfoCard');
+    const grid = document.getElementById('deviceInfoGrid');
+
+    const infos = data.type === 'compare'
+        ? [data.device_info_a, data.device_info_b]
+        : [data.device_info];
+
+    const hasInfo = infos.some(i => i && Object.keys(i).length > 2);
+
+    if (!hasInfo) {
+        card.style.display = 'none';
+        return;
+    }
+
+    card.style.display = '';
+
+    const fields = [
+        { key: 'device', label: '设备', icon: 'fa-microchip' },
+        { key: 'accelerator', label: '加速器', icon: 'fa-microchip' },
+        { key: 'cpu_info', label: 'CPU', icon: 'fa-microchip' },
+        { key: 'memory', label: '内存', icon: 'fa-memory' },
+        { key: 'model', label: '模型', icon: 'fa-brain' },
+        { key: 'quantization', label: '量化', icon: 'fa-compress' },
+        { key: 'framework', label: '框架', icon: 'fa-cubes' },
+        { key: 'api_endpoint', label: 'API 端点', icon: 'fa-plug' },
+        { key: 'network_mode', label: '网络模式', icon: 'fa-network-wired' },
+    ];
+
+    let html = '';
+    for (const f of fields) {
+        const vals = infos.map(i => i ? (i[f.key] || '-') : '-');
+        const display = vals.length === 2 && vals[0] !== vals[1]
+            ? `<span class="device-tag device-tag-a">${vals[0]}</span> / <span class="device-tag device-tag-b">${vals[1]}</span>`
+            : vals[0];
+        if (vals.every(v => v === '-' || !v)) continue;
+        html += `<div class="info-item">
+            <div class="info-label"><i class="fas ${f.icon} mr-1"></i>${f.label}</div>
+            <div class="info-value">${display}</div>
+        </div>`;
+    }
+    grid.innerHTML = html;
+}
+
+// ── 渲染参数 ──
+function renderParams(data) {
+    const container = document.getElementById('paramsContent');
+    if (data.type === 'compare') {
+        container.innerHTML = `
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="glass-panel p-4">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="w-6 h-6 rounded-full bg-blue-500/20 text-blue-600 flex items-center justify-center text-xs font-bold">A</span>
+                    <span class="font-medium">设备 A</span>
+                </div>
+                <div class="flex gap-3">
+                    <div class="flex-1">
+                        <label class="text-xs text-muted block mb-1">设备名称</label>
+                        <input type="text" id="paramDeviceA" class="glass-input" value="${data.device_a || data.name_a || '设备A'}">
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-xs text-muted block mb-1">模型名称</label>
+                        <input type="text" id="paramModelA" class="glass-input" value="${data.model_a || '模型A'}">
+                    </div>
+                </div>
+            </div>
+            <div class="glass-panel p-4">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="w-6 h-6 rounded-full bg-purple-500/20 text-purple-600 flex items-center justify-center text-xs font-bold">B</span>
+                    <span class="font-medium">设备 B</span>
+                </div>
+                <div class="flex gap-3">
+                    <div class="flex-1">
+                        <label class="text-xs text-muted block mb-1">设备名称</label>
+                        <input type="text" id="paramDeviceB" class="glass-input" value="${data.device_b || data.name_b || '设备B'}">
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-xs text-muted block mb-1">模型名称</label>
+                        <input type="text" id="paramModelB" class="glass-input" value="${data.model_b || '模型B'}">
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    } else {
+        container.innerHTML = `
+        <div class="flex flex-wrap gap-4">
+            <div class="flex-1 min-w-[200px]">
+                <label class="text-xs text-muted block mb-1.5">设备名称</label>
+                <input type="text" id="paramDevice" class="glass-input" value="${data.device_name || '未知设备'}">
+            </div>
+            <div class="flex-1 min-w-[200px]">
+                <label class="text-xs text-muted block mb-1.5">模型名称</label>
+                <input type="text" id="paramModel" class="glass-input" value="${data.model_name || '未知模型'}">
+            </div>
+        </div>`;
+    }
+}
+
+// ── 渲染统计 ──
+function renderStats(data) {
+    let cards;
+    if (data.type === 'compare') {
+        const allA = data.groups_a;
+        const allB = data.groups_b;
+        const totalReq = allA.reduce((s,g) => s + g.total_requests, 0) + allB.reduce((s,g) => s + g.total_requests, 0);
+        const maxTputA = Math.max(...allA.map(g => g.throughput_max));
+        const maxTputB = Math.max(...allB.map(g => g.throughput_max));
+        const avgLatA = allA.reduce((s,g) => s + g.avg_latency, 0) / allA.length;
+        const avgLatB = allB.reduce((s,g) => s + g.avg_latency, 0) / allB.length;
+        const avgTtftA = allA.reduce((s,g) => s + g.avg_ttft, 0) / allA.length;
+        const avgTtftB = allB.reduce((s,g) => s + g.avg_ttft, 0) / allB.length;
+        cards = [
+            { label: '总请求数', value: totalReq.toLocaleString(), sub: 'A+B 合计', color: 'text-blue-600' },
+            { label: '平均延迟', value: `${avgLatA.toFixed(3)} / ${avgLatB.toFixed(3)}s`, sub: avgLatA < avgLatB ? 'A 更优' : 'B 更优', color: 'text-amber-600' },
+            { label: '峰值吞吐', value: `${maxTputA.toFixed(1)} / ${maxTputB.toFixed(1)}`, sub: maxTputA > maxTputB ? 'A 更优' : 'B 更优', color: 'text-emerald-600' },
+            { label: '平均 TTFT', value: `${avgTtftA.toFixed(3)} / ${avgTtftB.toFixed(3)}s`, sub: avgTtftA < avgTtftB ? 'A 更优' : 'B 更优', color: 'text-purple-600' },
+        ];
+    } else {
+        const groups = data.groups;
+        const totalReq = groups.reduce((s,g) => s + g.total_requests, 0);
+        const totalFail = groups.reduce((s,g) => s + g.failed_requests, 0);
+        const avgLat = groups.reduce((s,g) => s + g.avg_latency, 0) / groups.length;
+        const maxTput = Math.max(...groups.map(g => g.throughput_max));
+        const avgTtft = groups.reduce((s,g) => s + g.avg_ttft, 0) / groups.length;
+        cards = [
+            { label: '总请求数', value: totalReq.toLocaleString(), sub: `失败 ${totalFail}`, color: 'text-blue-600' },
+            { label: '平均延迟', value: `${avgLat.toFixed(3)}s`, sub: '端到端', color: 'text-amber-600' },
+            { label: '峰值吞吐', value: `${maxTput.toFixed(2)}`, sub: 'tok/s', color: 'text-emerald-600' },
+            { label: '平均 TTFT', value: `${avgTtft.toFixed(3)}s`, sub: '首Token时延', color: 'text-purple-600' },
+        ];
+    }
+    document.getElementById('statsGrid').innerHTML = cards.map(c =>
+        `<div class="glass-panel p-4 text-center hover-grow">
+            <div class="stat-label">${c.label}</div>
+            <div class="stat-value ${c.color} mt-1">${c.value}</div>
+            <div class="text-xs text-muted mt-1">${c.sub}</div>
+        </div>`
+    ).join('');
+}
+
+// ── 发现设备 ──
+async function discoverDevices() {
+    const path = document.getElementById('discoverDir').value.trim();
+    if (!path) { showToast('请输入根目录路径', 'error'); return; }
+
+    const btn = document.getElementById('discoverBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> 发现中...';
+
+    try {
+        const resp = await fetch('/api/discover', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path })
+        });
+        const data = await resp.json();
+        if (!data.ok) { showToast(data.error || '发现失败', 'error'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-sitemap mr-1"></i> 发现设备'; return; }
+
+        discoverResult = data.devices;
+        renderDiscoverResult(data.devices);
+        document.getElementById('discoverResult').style.display = '';
+        document.getElementById('discoverResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showToast(`发现 ${data.devices.length} 台设备`, 'success');
+    } catch (e) {
+        showToast('网络错误: ' + e.message, 'error');
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-sitemap mr-1"></i> 发现设备';
+}
+
+// ── 渲染发现结果 ──
+function renderDiscoverResult(devices) {
+    document.getElementById('deviceCountBadge').textContent = `${devices.length} 台`;
+
+    const container = document.getElementById('deviceList');
+    container.innerHTML = devices.map((d, i) => {
+        const hasInfo = d.device || d.accelerator || d.cpu_info || d.memory;
+        const infoHtml = hasInfo ? `
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 text-xs">
+                ${d.device ? `<div><span class="text-muted">设备:</span> ${d.device}</div>` : ''}
+                ${d.accelerator ? `<div><span class="text-muted">加速器:</span> ${d.accelerator}</div>` : ''}
+                ${d.model ? `<div><span class="text-muted">模型:</span> ${d.model}</div>` : ''}
+                ${d.memory ? `<div><span class="text-muted">内存:</span> ${d.memory}</div>` : ''}
+                ${d.quantization ? `<div><span class="text-muted">量化:</span> ${d.quantization}</div>` : ''}
+                ${d.framework ? `<div><span class="text-muted">框架:</span> ${d.framework}</div>` : ''}
+            </div>
+        ` : '';
+
+        const issuesHtml = d.issues && d.issues.length > 0
+            ? `<div class="mt-2 text-xs text-amber-600">${d.issues.map(x => '<div>⚠ ' + x + '</div>').join('')}</div>`
+            : '';
+
+        return `<div class="glass-panel p-4 mb-3 hover-grow">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-600 flex items-center justify-center font-bold text-sm">${i+1}</span>
+                    <div>
+                        <div class="font-medium">${d.device || '未知设备'}</div>
+                        <div class="text-xs text-muted">${d.group_count} 组测试数据</div>
+                    </div>
+                </div>
+                <span class="badge badge-blue">${d.group_count} 组</span>
+            </div>
+            ${infoHtml}
+            ${issuesHtml}
+        </div>`;
+    }).join('');
+}
+
+// ── 一键生成 ──
+async function autoGenerate() {
+    if (!scanResult) { showToast('请先扫描目录', 'error'); return; }
+
+    const formats = [];
+    if (document.getElementById('fmtExcel').checked) formats.push('excel');
+    if (document.getElementById('fmtHtml').checked) formats.push('html');
+    if (formats.length === 0) { showToast('请至少选择一种输出格式', 'error'); return; }
+
+    const perConcurrency = document.getElementById('chkPerConcurrency').checked;
+
+    const btn = document.getElementById('generateBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> 生成中...';
+
+    let payload;
+    if (scanResult.type === 'compare') {
+        payload = {
+            type: 'compare',
+            base_dir: scanResult.base_dir,
+            dir_a: scanResult.dir_a,
+            dir_b: scanResult.dir_b,
+            device_a: document.getElementById('paramDeviceA')?.value || '设备A',
+            device_b: document.getElementById('paramDeviceB')?.value || '设备B',
+            model_a: document.getElementById('paramModelA')?.value || '模型A',
+            model_b: document.getElementById('paramModelB')?.value || '模型B',
+            formats, per_concurrency: perConcurrency,
+        };
+    } else {
+        payload = {
+            type: 'single',
+            base_dir: scanResult.base_dir,
+            device_name: document.getElementById('paramDevice')?.value || '未知设备',
+            model_name: document.getElementById('paramModel')?.value || '未知模型',
+            formats, per_concurrency: perConcurrency,
+        };
+    }
+
+    showProgress();
+    try {
+        const resp = await fetch('/api/auto-generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        if (!data.ok) { showToast(data.error || '提交失败', 'error'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-rocket mr-2"></i> 一键生成'; return; }
+
+        taskTimer = setInterval(() => pollTask(data.task_id), 800);
+    } catch (e) {
+        showToast('网络错误: ' + e.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-rocket mr-2"></i> 一键生成';
+    }
+}
+
+// ── 批量生成 ──
+async function discoverGenerate() {
+    const path = document.getElementById('discoverDir').value.trim();
+    if (!path) { showToast('请输入根目录路径', 'error'); return; }
+
+    const formats = [];
+    if (document.getElementById('dFmtExcel').checked) formats.push('excel');
+    if (document.getElementById('dFmtHtml').checked) formats.push('html');
+    if (formats.length === 0) { showToast('请至少选择一种输出格式', 'error'); return; }
+
+    const btn = document.getElementById('discoverGenerateBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> 生成中...';
+
+    showProgress();
+    try {
+        const resp = await fetch('/api/discover-generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path, formats })
+        });
+        const data = await resp.json();
+        if (!data.ok) { showToast(data.error || '提交失败', 'error'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-rocket mr-2"></i> 批量生成'; return; }
+
+        taskTimer = setInterval(() => pollTask(data.task_id), 800);
+    } catch (e) {
+        showToast('网络错误: ' + e.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-rocket mr-2"></i> 批量生成';
+    }
+}
+
+// ── 进度显示 ──
+function showProgress() {
+    document.getElementById('progressArea').style.display = '';
+    document.getElementById('doneArea').style.display = 'none';
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('progressPct').textContent = '0%';
+    document.getElementById('progressMsg').textContent = '正在提交...';
+    document.getElementById('progressTitle').innerHTML = '<span class="pulse-dot" style="display:inline-block;margin-right:12px"></span> 正在生成报告...';
+}
+
+// ── 轮询 ──
+async function pollTask(taskId) {
+    try {
+        const resp = await fetch(`/api/task/${taskId}`);
+        const data = await resp.json();
+        if (!data.ok) { clearInterval(taskTimer); return; }
+
+        document.getElementById('progressFill').style.width = data.progress + '%';
+        document.getElementById('progressPct').textContent = data.progress + '%';
+        document.getElementById('progressMsg').textContent = data.message || '处理中...';
+
+        if (data.status === 'completed') {
+            clearInterval(taskTimer);
+            document.getElementById('progressTitle').innerHTML = '<i class="fas fa-check-circle text-emerald-500" style="margin-right:10px"></i> 生成完成';
+            document.getElementById('progressArea').style.display = 'none';
+            renderDone(data.files);
+            document.getElementById('doneArea').style.display = '';
+            document.getElementById('doneFileCount').textContent = `共 ${data.files.length} 个文件`;
+            document.getElementById('doneArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            showToast('报告生成完成！', 'success');
+            document.getElementById('generateBtn').disabled = false;
+            document.getElementById('generateBtn').innerHTML = '<i class="fas fa-rocket mr-2"></i> 一键生成';
+            document.getElementById('discoverGenerateBtn').disabled = false;
+            document.getElementById('discoverGenerateBtn').innerHTML = '<i class="fas fa-rocket mr-2"></i> 批量生成';
+        } else if (data.status === 'failed') {
+            clearInterval(taskTimer);
+            document.getElementById('progressTitle').innerHTML = '<i class="fas fa-times-circle text-rose-500" style="margin-right:10px"></i> 生成失败';
+            showToast('生成失败: ' + (data.error || '未知错误'), 'error');
+            document.getElementById('generateBtn').disabled = false;
+            document.getElementById('generateBtn').innerHTML = '<i class="fas fa-rocket mr-2"></i> 一键生成';
+            document.getElementById('discoverGenerateBtn').disabled = false;
+            document.getElementById('discoverGenerateBtn').innerHTML = '<i class="fas fa-rocket mr-2"></i> 批量生成';
+        }
+    } catch (e) {}
+}
+
+// ── 渲染完成 ──
+function renderDone(files) {
+    const container = document.getElementById('doneFiles');
+    container.innerHTML = files.map(f => {
+        const icon = f.type === 'html' ? 'fa-file-code text-cyan-500' : 'fa-file-excel text-emerald-500';
+        const previewBtn = f.type === 'html'
+            ? `<button class="btn-ghost text-xs px-3 py-1.5" onclick="window.open('/api/preview/${f.name}','_blank')"><i class="fas fa-eye mr-1"></i> 预览</button>`
+            : '';
+        return `<div class="file-card fade-in">
+            <i class="fas ${icon} text-xl"></i>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium truncate">${f.name}</div>
+                <div class="text-xs text-muted">${f.type.toUpperCase()} 报告</div>
+            </div>
+            <div class="flex gap-2">
+                ${previewBtn}
+                <button class="btn-primary text-xs px-3 py-1.5" onclick="window.open('/api/download/${f.name}','_blank')">
+                    <i class="fas fa-download mr-1"></i> 下载
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ── 重置 ──
+function resetAll() {
+    document.getElementById('resultArea').style.display = 'none';
+    document.getElementById('progressArea').style.display = 'none';
+    document.getElementById('doneArea').style.display = 'none';
+    document.getElementById('discoverResult').style.display = 'none';
+    scanResult = null;
+    discoverResult = null;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
